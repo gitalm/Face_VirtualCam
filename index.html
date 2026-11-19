@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Face-Tracking-Avatar</title>
+  <style>
+    video { display: none; }
+    svg { width: 300px; background: #eef; border-radius: 12px; }
+  </style>
+</head>
+<body>
+  <video id="cam" autoplay playsinline></video>
+
+  <svg id="face" viewBox="0 0 200 200">
+    <circle cx="100" cy="100" r="80" fill="#ffd966" stroke="#333" stroke-width="3"/>
+    <!-- Augen -->
+    <ellipse id="eyeL" cx="70"  cy="80" rx="10" ry="12" fill="#333"/>
+    <ellipse id="eyeR" cx="130" cy="80" rx="10" ry="12" fill="#333"/>
+    <!-- Mund -->
+    <ellipse id="mouth" cx="100" cy="145" rx="25" ry="3" fill="#a33"/>
+  </svg>
+
+  <script type="module">
+    import { FaceLandmarker, FilesetResolver }
+      from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.mjs";
+
+    const video = document.getElementById("cam");
+    const eyeL = document.getElementById("eyeL");
+    const eyeR = document.getElementById("eyeR");
+    const mouth = document.getElementById("mouth");
+    const face = document.getElementById("face");
+
+    // Modell laden
+    const fileset = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
+    );
+    const landmarker = await FaceLandmarker.createFromOptions(fileset, {
+      baseOptions: {
+        modelAssetPath:
+          "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
+      },
+      runningMode: "VIDEO",
+      outputFaceBlendshapes: true,
+      outputFacialTransformationMatrixes: true
+    });
+
+    // Kamera starten
+    video.srcObject = await navigator.mediaDevices.getUserMedia({ video: true });
+    await video.play();
+
+    // Hilfsfunktion: Blendshape-Wert (0–1) per Name holen
+    const get = (shapes, name) =>
+      shapes.find(s => s.categoryName === name)?.score ?? 0;
+
+    function loop() {
+      const result = landmarker.detectForVideo(video, performance.now());
+
+      if (result.faceBlendshapes.length > 0) {
+        const shapes = result.faceBlendshapes[0].categories;
+
+        // Augen: Lidschlag verkleinert die Höhe (ry)
+        eyeL.setAttribute("ry", 12 * (1 - get(shapes, "eyeBlinkLeft")) + 1);
+        eyeR.setAttribute("ry", 12 * (1 - get(shapes, "eyeBlinkRight")) + 1);
+
+        // Mund: Kiefer öffnen
+        mouth.setAttribute("ry", 3 + get(shapes, "jawOpen") * 30);
+
+        // Kopfneigung aus der Transformationsmatrix
+        const m = result.facialTransformationMatrixes[0].data;
+        const roll = Math.atan2(m[1], m[0]) * 180 / Math.PI;
+        face.style.transform = `rotate(${-roll}deg)`;
+      }
+      requestAnimationFrame(loop);
+    }
+    loop();
+  </script>
+</body>
+</html>
