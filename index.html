@@ -71,7 +71,7 @@
     const root = document.documentElement;
 
     // ================= Einstellungen =================
-    const NOSE_GAIN   = 2.0;   // Stärke der Nasenbewegung (1 = wie vorher)
+    const NOSE_GAIN   = 2.0;   // Stärke der Nasenbewegung
     const TONGUE_GAIN = 6;     // Verstärkung des Blendshapes tongueOut
     const DZ_ROLL = 1.5, DZ_YAW = 3, DZ_TILT = 3;   // Totzonen in Grad
 
@@ -107,7 +107,7 @@
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") setClean(false);
       if (e.key === "r" || e.key === "R") {
-        dist0 = null; base = null;            // wird beim nächsten Gesicht neu gesetzt
+        dist0 = null; base = null;
         toast("Haltung kalibriert");
       }
       if (e.key === "t" || e.key === "T") forceTongue = true;
@@ -231,11 +231,13 @@
     const get = (shapes, name) => shapes.find((s) => s.categoryName === name)?.score ?? 0;
     const setBrow = (lines, y1, y2) =>
       lines.forEach((l) => { l.setAttribute("y1", y1); l.setAttribute("y2", y2); });
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
     // Totzone: kleine Werte werden ignoriert, große weich übernommen
     const dz = (v, d) => Math.sign(v) * Math.max(0, Math.abs(v) - d);
 
     // ================= Mund und Zunge =================
     function drawMouth(open, smile, pucker, tg = 0) {
+      if (!cfg) return;
       const { cx, cy, halfW: w, openMax } = cfg.mouth;
       const halfW = w - pucker * w * 0.45;
       const yc = cy - smile * w * 0.27;
@@ -274,19 +276,19 @@
     }
 
     // ================= Kopf =================
-    // roll: Neigung links/rechts, yaw: Drehung, tilt: Nicken (alle relativ zur Grundhaltung)
+    // roll: Neigung links/rechts, yaw: Drehung, tilt: Nicken (relativ zur Grundhaltung)
     // near: Nähe zur Kamera (-1 weit weg … +1 sehr nah)
     function moveHead(roll, yaw, tilt, near) {
       const t = performance.now();
-      const swayRoll = Math.sin(t / 2300) * 1.5 + Math.sin(t / 1370) * 0.8;   // Grad
-      const swayX = Math.sin(t / 3100) * 3;                                  // Pixel
+      const swayRoll = Math.sin(t / 2300) * 1.5 + Math.sin(t / 1370) * 0.8;
+      const swayX = Math.sin(t / 3100) * 3;
 
       const scale   = 1 + near * 0.12;
-      const forward = Math.max(0, near) * 22 + tilt * 0.4;                   // Vorneigen
+      const forward = Math.max(0, near) * 22 + tilt * 0.4;
       const squashY = 1 - Math.max(0, near) * 0.04 - Math.abs(tilt) * 0.002;
 
       // Pseudo-3D-Drehung
-      const turn    = Math.max(-1, Math.min(1, yaw / 30));
+      const turn    = clamp(yaw / 30, -1, 1);
       const skewY   = -turn * 2.5;
       const squashX = 1 - Math.abs(turn) * 0.05;
 
@@ -303,7 +305,7 @@
       const bx = smooth("bodyX", yaw * 0.5, 0.06);
       const br = smooth("bodyRoll", roll * 0.3, 0.06);
       const by = smooth("bodyY", tilt * 0.4, 0.08);
-      const bs = smooth("bodyScale", 1 + near * 0.08, 0.08);     // Körper wächst mit
+      const bs = smooth("bodyScale", 1 + near * 0.08, 0.08);
       const shrug = smooth("shrug", (state.browUp ?? 0) * 14, 0.1);
 
       if (el.body !== dummy) {
@@ -357,20 +359,20 @@
 
       // Mund und Zunge
       let tg = smooth("tongue", Math.min(1, g("tongueOut") * TONGUE_GAIN), 0.4);
-      if (forceTongue) tg = 1;                                   // Test mit Taste T
+      if (forceTongue) tg = 1;
       const open = smooth("open", Math.max(g("jawOpen"), tg * 0.6));
       const smile = smooth("smile",
         ((g("mouthSmileLeft") + g("mouthSmileRight")) -
          (g("mouthFrownLeft") + g("mouthFrownRight"))) / 2 * 1.4);
-      drawMouth(open, Math.max(-1, Math.min(1, smile)), smooth("pucker", g("mouthPucker")), tg);
+      drawMouth(open, clamp(smile, -1, 1), smooth("pucker", g("mouthPucker")), tg);
 
       // Kopfhaltung, relativ zur Grundhaltung (Kalibrierung mit R)
       let roll = 0, yaw = 0, tilt = 0, near = state.near ?? 0;
       if (matrix) {
         const m = matrix.data;
         const rRoll = smooth("rawRoll", Math.atan2(m[1], m[0]) * 180 / Math.PI);
-        const rYaw  = smooth("rawYaw",  Math.asin(Math.max(-1, Math.min(1, -m[8]))) * 180 / Math.PI);
-        const rTilt = smooth("rawTilt", Math.asin(Math.max(-1, Math.min(1,  m[9]))) * 180 / Math.PI);
+        const rYaw  = smooth("rawYaw",  Math.asin(clamp(-m[8], -1, 1)) * 180 / Math.PI);
+        const rTilt = smooth("rawTilt", Math.asin(clamp(m[9], -1, 1)) * 180 / Math.PI);
         const dist  = Math.abs(m[14]);
 
         if (!base) base = { roll: rRoll, yaw: rYaw, tilt: rTilt };
@@ -379,7 +381,7 @@
         roll = dz(rRoll - base.roll, DZ_ROLL);
         yaw  = dz(rYaw  - base.yaw,  DZ_YAW);
         tilt = dz(rTilt - base.tilt, DZ_TILT);
-        near = smooth("near", Math.max(-1, Math.min(1, (dist0 - dist) / 25)), 0.15);
+        near = smooth("near", clamp((dist0 - dist) / 25, -1, 1), 0.15);
 
         state.cRoll = roll; state.cYaw = yaw; state.cTilt = tilt;
       }
@@ -387,17 +389,13 @@
       moveBody(performance.now(), roll, yaw, tilt, near);
 
       // Nase: Rümpfen bewegt sie deutlich, alles andere nur dezent und begrenzt
-      const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
       const sneer  = smooth("sneer", (g("noseSneerLeft") + g("noseSneerRight")) / 2, 0.3);
       const sneerD = smooth("sneerD", g("noseSneerLeft") - g("noseSneerRight"), 0.3);
       const smileN = smooth("smileN", (g("mouthSmileLeft") + g("mouthSmileRight")) / 2, 0.2);
       const breathN = Math.sin(performance.now() / 1100) * 0.006;
 
       const L = cfg.noseLift * NOSE_GAIN;
-
-      // Seitenversatz: nur ein kleiner 3D-Effekt, hart begrenzt
       const nx = clamp(yaw * cfg.noseShift * 0.25, -6, 6) + sneerD * L * 0.4;
-      // Hoch nur beim Rümpfen, beim Lächeln minimal
       const ny = -sneer * L - smileN * L * 0.1;
       const sx = 1 + sneer * 0.25 * NOSE_GAIN * 0.7 + smileN * 0.04 + breathN;
       const sy = 1 + sneer * 0.08 * NOSE_GAIN * 0.7 + breathN;
@@ -405,6 +403,7 @@
 
       el.nose.style.transform =
         `translate(${nx}px, ${ny}px) rotate(${rot}deg) scale(${sx}, ${sy})`;
+    }
 
     // ================= Schleife (läuft immer, auch vor dem Kamerastart) =================
     let landmarker = null, lastTime = -1;
@@ -425,56 +424,4 @@
           moveHead(state.cRoll ?? 0, state.cYaw ?? 0, state.cTilt ?? 0, n);
           moveBody(performance.now(), state.cRoll ?? 0, state.cYaw ?? 0, state.cTilt ?? 0, n);
         }
-      } catch (err) {
-        console.error(err);
-      }
-      requestAnimationFrame(loop);
-    }
-
-    // ================= Start =================
-    const files = await listFigures();
-    $("figSelect").innerHTML = files
-      .map((f) => `<option value="${f}">${f.replace(/\.svg$/i, "")}</option>`).join("");
-
-    async function safeLoad(file) {
-      try {
-        await loadFigure(file);
-      } catch (err) {
-        console.error("Figur konnte nicht geladen werden:", file, err);
-        status.textContent = "Fehler bei „" + file + "“: " + err.message;
-      }
-    }
-
-    $("figSelect").addEventListener("change", (e) => safeLoad(e.target.value));
-    const saved = localStorage.getItem("avatarFig");
-    await safeLoad(files.includes(saved) ? saved : files[0]);
-    loop();
-
-    startBtn.addEventListener("click", async () => {
-      startBtn.disabled = true;
-      try {
-        status.textContent = "Modell wird geladen …";
-        const fileset = await FilesetResolver.forVisionTasks("./vendor/wasm");
-        landmarker = await FaceLandmarker.createFromOptions(fileset, {
-          baseOptions: { modelAssetPath: "./models/face_landmarker.task" },
-          runningMode: "VIDEO",
-          numFaces: 1,
-          outputFaceBlendshapes: true,
-          outputFacialTransformationMatrixes: true
-        });
-        status.textContent = "Kamera wird gestartet …";
-        video.srcObject = await navigator.mediaDevices.getUserMedia({
-          video: { width: 640, height: 480, facingMode: "user" }
-        });
-        await video.play();
-        status.textContent = "Läuft! Schau gerade in die Kamera. Mit R kalibrierst du die Haltung neu.";
-        startBtn.style.display = "none";
-      } catch (err) {
-        console.error(err);
-        status.textContent = "Fehler: " + err.message;
-        startBtn.disabled = false;
-      }
-    });
-  </script>
-</body>
-</html>
+      
