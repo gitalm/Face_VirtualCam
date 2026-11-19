@@ -300,23 +300,25 @@
       moveBody(performance.now(), roll, yaw, tilt);
 
       // Nase
-// Nase: mehrere Einflüsse, stark geglättet, damit es organisch wirkt
-const sneer  = smooth("sneer", (g("noseSneerLeft") + g("noseSneerRight")) / 2, 0.3);
-const sneerD = smooth("sneerD", (g("noseSneerLeft") - g("noseSneerRight")), 0.3);  // einseitig
-const cheek  = smooth("cheek", (g("cheekSquintLeft") + g("cheekSquintRight")) / 2, 0.3);
-const smileN = smooth("smileN", (g("mouthSmileLeft") + g("mouthSmileRight")) / 2, 0.2);
-const jaw    = smooth("jawN", g("jawOpen"), 0.2);
-const breathN = Math.sin(performance.now() / 1100) * 0.004;       // Nasenflügel atmen
+      // Nase: mehrere Einflüsse, stark geglättet, damit es organisch wirkt
+      const sneer  = smooth("sneer", (g("noseSneerLeft") + g("noseSneerRight")) / 2, 0.3);
+      const sneerD = smooth("sneerD", g("noseSneerLeft") - g("noseSneerRight"), 0.3);
+      const cheek  = smooth("cheek", (g("cheekSquintLeft") + g("cheekSquintRight")) / 2, 0.3);
+      const smileN = smooth("smileN", (g("mouthSmileLeft") + g("mouthSmileRight")) / 2, 0.2);
+      const jaw    = smooth("jawN", g("jawOpen"), 0.2);
+      const breathN = Math.sin(performance.now() / 1100) * 0.004;
 
-const nx = yaw * cfg.noseShift + sneerD * cfg.noseLift * 0.5;
-const ny = -sneer * cfg.noseLift - smileN * cfg.noseLift * 0.35
-           - cheek * cfg.noseLift * 0.3 + jaw * cfg.noseLift * 0.2;
-const sx = 1 + sneer * 0.18 + smileN * 0.06 + breathN;             // breiter beim Rümpfen/Lächeln
-const sy = 1 - cheek * 0.08 + sneer * 0.06 + breathN;
-const rot = sneerD * 6 + roll * 0.1;                               // Neigung bei einseitigem Rümpfen
+      const nx = yaw * cfg.noseShift + sneerD * cfg.noseLift * 0.5;
+      const ny = -sneer * cfg.noseLift - smileN * cfg.noseLift * 0.35
+                 - cheek * cfg.noseLift * 0.3 + jaw * cfg.noseLift * 0.2;
+      const sx = 1 + sneer * 0.18 + smileN * 0.06 + breathN;
+      const sy = 1 - cheek * 0.08 + sneer * 0.06 + breathN;
+      const rot = sneerD * 6 + roll * 0.1;
 
-el.nose.style.transform =
-  `translate(${nx}px, ${ny}px) rotate(${rot}deg) scale(${sx}, ${sy})`;
+      el.nose.style.transform =
+        `translate(${nx}px, ${ny}px) rotate(${rot}deg) scale(${sx}, ${sy})`;
+    }
+
 
     // ================= Schleife (läuft immer, auch vor dem Kamerastart) =================
     let landmarker = null, lastTime = -1;
@@ -336,12 +338,23 @@ el.nose.style.transform =
     }
 
     // ================= Start =================
+    // ================= Start =================
     const files = await listFigures();
     $("figSelect").innerHTML = files
       .map((f) => `<option value="${f}">${f.replace(/\.svg$/i, "")}</option>`).join("");
-    $("figSelect").addEventListener("change", (e) => loadFigure(e.target.value));
+
+    async function safeLoad(file) {
+      try {
+        await loadFigure(file);
+      } catch (err) {
+        console.error("Figur konnte nicht geladen werden:", file, err);
+        status.textContent = "Fehler bei „" + file + "“: " + err.message;
+      }
+    }
+
+    $("figSelect").addEventListener("change", (e) => safeLoad(e.target.value));
     const saved = localStorage.getItem("avatarFig");
-    await loadFigure(files.includes(saved) ? saved : files[0]);
+    await safeLoad(files.includes(saved) ? saved : files[0]);
     loop();
 
     startBtn.addEventListener("click", async () => {
