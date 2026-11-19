@@ -5,64 +5,40 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Face-Tracking-Avatar</title>
   <style>
-    body {
-      font-family: system-ui, sans-serif;
-      text-align: center;
-      background: #f4f6fb;
-      margin: 0;
-      padding: 1rem;
-    }
+    :root { --bg: #00B140; }
+    body { font-family: system-ui, sans-serif; text-align: center; margin: 0; padding: 1rem; background: #f4f6fb; }
+    body.clean { background: var(--bg); padding: 0; }
+    body.clean .ui, body.clean video { display: none; }
+    .ui { display: flex; gap: .8rem; justify-content: center; flex-wrap: wrap; align-items: center; margin-bottom: .5rem; }
+    button, select { font-size: 1rem; padding: .5rem 1rem; border-radius: 8px; cursor: pointer; }
+    #status { margin: .5rem; color: #444; }
     #stage { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }
-    svg { width: min(90vw, 420px); background: #dfe8ff; border-radius: 16px; }
-    video {
-      width: 220px;
-      border-radius: 16px;
-      transform: scaleX(-1);
-      background: #222;
-      align-self: flex-start;
-    }
-    button { font-size: 1.1rem; padding: .6rem 1.2rem; border-radius: 8px; cursor: pointer; }
-    #status { margin: 1rem; color: #444; }
-    #head { transform-origin: 100px 100px; }
+    #avatar { width: min(90vw, 560px); background: var(--bg); border-radius: 16px; }
+    body.clean #avatar { width: min(100vw, 100vh); border-radius: 0; margin: 0 auto; }
+    #avatar svg { display: block; width: 100%; height: auto; }
+    video { width: 220px; border-radius: 16px; transform: scaleX(-1); background: #222; align-self: flex-start; }
   </style>
 </head>
 <body>
-  <h1>Face-Tracking-Avatar</h1>
-  <button id="start">Kamera starten</button>
-  <p id="status">Die Kamerabilder werden nur lokal in deinem Browser verarbeitet.</p>
+  <div class="ui">
+    <h1 style="width:100%;margin:.2rem">Face-Tracking-Avatar</h1>
+    <button id="start">Kamera starten</button>
+    <label>Hintergrund:
+      <select id="bgSelect">
+        <option value="#00B140">Greenscreen (#00B140)</option>
+        <option value="#00FF00">Hellgrün (#00FF00)</option>
+        <option value="#0047BB">Bluescreen (#0047BB)</option>
+        <option value="#FF00FF">Magenta (#FF00FF)</option>
+        <option value="#dfe8ff">Hellblau (neutral)</option>
+      </select>
+    </label>
+    <button id="cleanBtn">Nur Avatar anzeigen</button>
+  </div>
+  <p id="status" class="ui">Die Kamerabilder werden nur lokal in deinem Browser verarbeitet.</p>
 
   <div id="stage">
     <video id="cam" autoplay playsinline muted></video>
-
-    <svg id="face" viewBox="0 0 200 200" aria-label="Animiertes Gesicht">
-      <g id="head">
-        <!-- Kopf -->
-        <circle cx="100" cy="100" r="80" fill="#ffd966" stroke="#333" stroke-width="3"/>
-
-        <!-- Augenbrauen -->
-        <line id="browL" x1="52" y1="55" x2="88" y2="55" stroke="#333" stroke-width="5" stroke-linecap="round"/>
-        <line id="browR" x1="112" y1="55" x2="148" y2="55" stroke="#333" stroke-width="5" stroke-linecap="round"/>
-
-        <!-- Augen -->
-        <ellipse cx="70"  cy="82" rx="16" ry="18" fill="#fff" stroke="#333" stroke-width="2"/>
-        <ellipse cx="130" cy="82" rx="16" ry="18" fill="#fff" stroke="#333" stroke-width="2"/>
-
-        <!-- Pupillen -->
-        <circle id="pupilL" cx="70"  cy="82" r="7" fill="#222"/>
-        <circle id="pupilR" cx="130" cy="82" r="7" fill="#222"/>
-
-        <!-- Lider (Hautfarbe, werden beim Blinzeln heruntergezogen) -->
-        <rect id="lidL" x="52"  y="62" width="36" height="0" fill="#ffd966"/>
-        <rect id="lidR" x="112" y="62" width="36" height="0" fill="#ffd966"/>
-
-        <!-- Nase -->
-        <path d="M100 95 Q94 112 102 114" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round"/>
-
-        <!-- Mund: Innenraum + Umriss -->
-        <path id="mouthFill" d="" fill="#a33"/>
-        <path id="mouthLine" d="" fill="none" stroke="#333" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </g>
-    </svg>
+    <div id="avatar" aria-label="Animierter Philosoph"></div>
   </div>
 
   <script type="module">
@@ -70,124 +46,125 @@
 
     const $ = (id) => document.getElementById(id);
     const video = $("cam"), status = $("status"), startBtn = $("start");
-    const head = $("head");
-    const browL = $("browL"), browR = $("browR");
-    const pupilL = $("pupilL"), pupilR = $("pupilR");
-    const lidL = $("lidL"), lidR = $("lidR");
-    const mouthFill = $("mouthFill"), mouthLine = $("mouthLine");
 
-    let landmarker = null;
+    // ---------- Hintergrund ----------
+    const root = document.documentElement;
+    const savedBg = localStorage.getItem("avatarBg");
+    if (savedBg) { root.style.setProperty("--bg", savedBg); $("bgSelect").value = savedBg; }
+    $("bgSelect").addEventListener("change", (e) => {
+      root.style.setProperty("--bg", e.target.value);
+      localStorage.setItem("avatarBg", e.target.value);
+    });
 
-    // ---- Glättung ----
-    const state = {};
-    const smooth = (key, value, alpha = 0.4) => {
-      state[key] = key in state ? state[key] * (1 - alpha) + value * alpha : value;
-      return state[key];
+    // "Nur Avatar" per Button oder ?clean in der URL (z. B. für OBS)
+    const setClean = (on) => document.body.classList.toggle("clean", on);
+    $("cleanBtn").addEventListener("click", () => setClean(true));
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") setClean(false); });
+    if (new URLSearchParams(location.search).has("clean")) setClean(true);
+
+    // ---------- SVG laden ----------
+    const res = await fetch("./assets/philosoph.svg");
+    $("avatar").innerHTML = await res.text();
+
+    const el = {
+      head: $("head"),
+      irisL: $("irisL"), irisR: $("irisR"),
+      lidL: $("lidL"), lidR: $("lidR"),
+      browL: [$("browL"), $("browL2")],
+      browR: [$("browR"), $("browR2")],
+      mouthFill: $("mouthFill"), mouthLine: $("mouthLine")
     };
 
-    const get = (shapes, name) =>
-      shapes.find((s) => s.categoryName === name)?.score ?? 0;
+    // ---------- Hilfsfunktionen ----------
+    const state = {};
+    const smooth = (key, v, a = 0.4) =>
+      (state[key] = key in state ? state[key] * (1 - a) + v * a : v);
+    const get = (shapes, name) => shapes.find((s) => s.categoryName === name)?.score ?? 0;
+    const setBrow = (lines, y1, y2) =>
+      lines.forEach((l) => { l.setAttribute("y1", y1); l.setAttribute("y2", y2); });
 
-    // ---- Mund zeichnen ----
-    // open: 0..1 (Kiefer), smile: -1..1 (negativ = traurig)
+    // ---------- Mund ----------
     function drawMouth(open, smile, pucker) {
-      const cx = 100, cy = 145;
-      const halfW = 30 - pucker * 14;          // Kussmund: schmaler
-      const corner = -smile * 12;              // Mundwinkel (negativ = nach oben)
+      const cx = 348, cy = 358;
+      const halfW = 30 - pucker * 14;
+      const yc = cy - smile * 8;               // Mundwinkel
       const xl = cx - halfW, xr = cx + halfW;
-      const yc = cy + corner;                  // y der Mundwinkel
-      const openH = open * 34;
+      const openH = open * 40;
+      const upperCtrl = cy - 4;
+      const lowerCtrl = cy + openH * 1.3 + 4;
 
-      // Oberlippe
-      const upperCtrl = cy + corner * 0.2 - 4;
-      // Unterlippe
-      const lowerCtrl = cy + openH * 1.3 + smile * 8 + 4;
-
-      const upper = `M${xl} ${yc} Q${cx} ${upperCtrl} ${xr} ${yc}`;
-      const lower = `Q${cx} ${lowerCtrl} ${xl} ${yc}Z`;
-
-      mouthFill.setAttribute("d", openH > 2 ? upper + " " + lower : "");
-      mouthLine.setAttribute(
-        "d",
-        `M${xl} ${yc} Q${cx} ${openH > 2 ? lowerCtrl : cy + smile * 12 + 2} ${xr} ${yc}` +
-        (openH > 2 ? ` M${xl} ${yc} Q${cx} ${upperCtrl} ${xr} ${yc}` : "")
-      );
+      if (openH > 2) {
+        el.mouthFill.setAttribute("d",
+          `M${xl} ${yc} Q${cx} ${upperCtrl} ${xr} ${yc} Q${cx} ${lowerCtrl} ${xl} ${yc}Z`);
+        el.mouthLine.setAttribute("d",
+          `M${xl} ${yc} Q${cx} ${lowerCtrl} ${xr} ${yc} M${xl} ${yc} Q${cx} ${upperCtrl} ${xr} ${yc}`);
+      } else {
+        el.mouthFill.setAttribute("d", "");
+        el.mouthLine.setAttribute("d",
+          `M${xl} ${yc} Q${cx} ${cy + 4 + smile * 10} ${xr} ${yc}`);
+      }
     }
 
-    // ---- Animation anwenden ----
+    // ---------- Animation ----------
+    // Spiegelprinzip: linkes Auge der Person = rechtes Auge im Bild
     function apply(shapes, matrix) {
       const g = (n) => get(shapes, n);
 
       // Blinzeln
-      const blinkL = smooth("blinkL", g("eyeBlinkLeft"), 0.6);
-      const blinkR = smooth("blinkR", g("eyeBlinkRight"), 0.6);
-      // Kamerabild ist gespiegelt: "Left" des Modells = rechte Seite des Betrachters
-      // Wir spiegeln bewusst wie ein Spiegel: linkes Auge der Person = rechtes Auge im SVG
-      lidR.setAttribute("height", blinkL * 40);
-      lidL.setAttribute("height", blinkR * 40);
+      el.lidR.setAttribute("height", smooth("blinkL", g("eyeBlinkLeft"), 0.6) * 42);
+      el.lidL.setAttribute("height", smooth("blinkR", g("eyeBlinkRight"), 0.6) * 42);
 
-      // Blickrichtung
+      // Blick
       const lookX = smooth("lookX",
         (g("eyeLookOutLeft") - g("eyeLookInLeft") +
          g("eyeLookInRight") - g("eyeLookOutRight")) / 2);
       const lookY = smooth("lookY",
         (g("eyeLookDownLeft") + g("eyeLookDownRight") -
          g("eyeLookUpLeft") - g("eyeLookUpRight")) / 2);
-      const px = -lookX * 8, py = lookY * 8;
-      pupilL.setAttribute("cx", 70 + px);  pupilL.setAttribute("cy", 82 + py);
-      pupilR.setAttribute("cx", 130 + px); pupilR.setAttribute("cy", 82 + py);
+      const t = `translate(${-lookX * 12} ${lookY * 6})`;
+      el.irisL.setAttribute("transform", t);
+      el.irisR.setAttribute("transform", t);
 
       // Augenbrauen
       const up = smooth("browUp", g("browInnerUp"));
-      const downL = smooth("browDownL", g("browDownLeft"));
-      const downR = smooth("browDownR", g("browDownRight"));
-      const outerL = smooth("browOuterL", g("browOuterUpLeft"));
-      const outerR = smooth("browOuterR", g("browOuterUpRight"));
-      // Spiegelung wie bei den Augen
-      const yInnerR = 55 - up * 12 + downL * 8 - outerL * 4;
-      const yOuterR = 55 - up * 4  - outerL * 12 + downL * 4;
-      const yInnerL = 55 - up * 12 + downR * 8 - outerR * 4;
-      const yOuterL = 55 - up * 4  - outerR * 12 + downR * 4;
-      browL.setAttribute("y1", yOuterL); browL.setAttribute("y2", yInnerL);
-      browR.setAttribute("y1", yInnerR); browR.setAttribute("y2", yOuterR);
+      const dL = smooth("dL", g("browDownLeft")),  dR = smooth("dR", g("browDownRight"));
+      const oL = smooth("oL", g("browOuterUpLeft")), oR = smooth("oR", g("browOuterUpRight"));
+      // Bild rechts = Person links
+      setBrow(el.browR, 190 - up * 18 + dL * 12, 198 - up * 6 - oL * 16 + dL * 6);
+      // Bild links = Person rechts (x1 = außen, x2 = innen)
+      setBrow(el.browL, 198 - up * 6 - oR * 16 + dR * 6, 190 - up * 18 + dR * 12);
 
       // Mund
       const open = smooth("open", g("jawOpen"));
       const smile = smooth("smile",
-        (g("mouthSmileLeft") + g("mouthSmileRight")) / 2 * 1.4 -
-        (g("mouthFrownLeft") + g("mouthFrownRight")) / 2 * 1.4);
-      const pucker = smooth("pucker", g("mouthPucker"));
-      drawMouth(open, Math.max(-1, Math.min(1, smile)), pucker);
+        ((g("mouthSmileLeft") + g("mouthSmileRight")) -
+         (g("mouthFrownLeft") + g("mouthFrownRight"))) / 2 * 1.4);
+      drawMouth(open, Math.max(-1, Math.min(1, smile)), smooth("pucker", g("mouthPucker")));
 
-      // Kopfneigung (Roll) und leichte Drehung
+      // Kopf
       if (matrix) {
         const m = matrix.data;
-        const roll = Math.atan2(m[1], m[0]) * 180 / Math.PI;
-        const yaw = Math.asin(Math.max(-1, Math.min(1, -m[8]))) * 180 / Math.PI;
-        const r = smooth("roll", roll);
-        const y = smooth("yaw", yaw);
-        head.style.transform = `translateX(${y * 0.4}px) rotate(${r}deg)`;
+        const roll = smooth("roll", Math.atan2(m[1], m[0]) * 180 / Math.PI);
+        const yaw = smooth("yaw",
+          Math.asin(Math.max(-1, Math.min(1, -m[8]))) * 180 / Math.PI);
+        el.head.style.transform = `translateX(${yaw * 1.2}px) rotate(${roll}deg)`;
       }
     }
 
-    // ---- Hauptschleife ----
-    let lastTime = -1;
+    // ---------- Schleife ----------
+    let landmarker = null, lastTime = -1;
     function loop() {
       if (video.readyState >= 2 && video.currentTime !== lastTime) {
         lastTime = video.currentTime;
-        const result = landmarker.detectForVideo(video, performance.now());
-        if (result.faceBlendshapes?.length > 0) {
-          apply(
-            result.faceBlendshapes[0].categories,
-            result.facialTransformationMatrixes?.[0]
-          );
+        const r = landmarker.detectForVideo(video, performance.now());
+        if (r.faceBlendshapes?.length > 0) {
+          apply(r.faceBlendshapes[0].categories, r.facialTransformationMatrixes?.[0]);
         }
       }
       requestAnimationFrame(loop);
     }
 
-    // ---- Start ----
-    drawMouth(0, 0.3, 0);
+    drawMouth(0, 0.1, 0);
 
     startBtn.addEventListener("click", async () => {
       startBtn.disabled = true;
@@ -201,14 +178,12 @@
           outputFaceBlendshapes: true,
           outputFacialTransformationMatrixes: true
         });
-
         status.textContent = "Kamera wird gestartet …";
         video.srcObject = await navigator.mediaDevices.getUserMedia({
           video: { width: 640, height: 480, facingMode: "user" }
         });
         await video.play();
-
-        status.textContent = "Läuft! Bewege dein Gesicht, blinzle, öffne den Mund, lächle.";
+        status.textContent = "Läuft! Mit Esc kommst du aus der Avatar-Ansicht zurück.";
         startBtn.style.display = "none";
         loop();
       } catch (err) {
