@@ -72,7 +72,9 @@
 
     // ================= Einstellungen =================
     const NOSE_GAIN   = 2.0;   // Stärke der Nasenbewegung
-    const TONGUE_GAIN = 6;     // Verstärkung des Blendshapes tongueOut
+    const TONGUE_GAIN = 6;     // Verstärkung des Blendshapes tongueOut    
+    const SMILE_GAIN = 1.6;    // Lächeln verstärken
+    const FROWN_GAIN = 3.5;    // Traurig verstärken (mouthFrown ist schwach)
     const DZ_ROLL = 1.5, DZ_YAW = 3, DZ_TILT = 3;   // Totzonen in Grad
 
     // ================= Zustand =================
@@ -221,8 +223,8 @@
       // Werte: berechnet -> bekannt -> data-fig im <svg>-Tag
       let override = {};
       try { override = JSON.parse($("avatar").querySelector("svg")?.dataset.fig || "{}"); } catch {}
-      cfg = { ...deriveConfig(el), ...(KNOWN[file] || {}), ...override };
-      requestAnimationFrame(() => drawMouth(0, 0.1, 0, 0));
+      cfg = { ...deriveConfig(el), ...(KNOWN[file] || {}), ...override };      
+      requestAnimationFrame(() => drawMouth({ smileL: 0.15, smileR: 0.15 }));
     }
 
     // ================= Hilfsfunktionen =================
@@ -236,25 +238,38 @@
     const dz = (v, d) => Math.sign(v) * Math.max(0, Math.abs(v) - d);
 
     // ================= Mund und Zunge =================
-    function drawMouth(open, smile, pucker, tg = 0) {
+    // smileL/smileR: -1 (Mundwinkel unten, traurig) … +1 (Mundwinkel oben, lächeln)
+    // Bild links = rechte Seite der Person (Spiegelprinzip)
+    function drawMouth(p = {}) {
       if (!cfg) return;
-      const { cx, cy, halfW: w, openMax } = cfg.mouth;
-      const halfW = w - pucker * w * 0.45;
-      const yc = cy - smile * w * 0.27;
+      const { open = 0, smileL = 0, smileR = 0, pucker = 0, funnel = 0,
+              shift = 0, stretch = 0, upperUp = 0, tg = 0 } = p;
+      const { cx: cx0, cy, halfW: w, openMax } = cfg.mouth;
+
+      const avg = (smileL + smileR) / 2;
+      const cx = cx0 + shift * w * 0.4;
+      const halfW = w * clamp(1 + stretch * 0.2 + Math.max(0, avg) * 0.15
+                                - pucker * 0.5 - funnel * 0.35, 0.35, 1.5);
+      const openH = Math.max(open, funnel * 0.6) * openMax;
+      const lift = w * 0.38;
+
       const xl = cx - halfW, xr = cx + halfW;
-      const openH = open * openMax;
-      const upperCtrl = cy - w * 0.13;
-      const lowerCtrl = cy + openH * 1.3 + w * 0.13;
+      const yl = cy - smileR * lift + open * w * 0.08;   // Bild links = Person rechts
+      const yr = cy - smileL * lift + open * w * 0.08;
+      const ym = (yl + yr) / 2;
 
       if (openH > 2) {
+        const upperCtrl = ym - w * 0.1 - upperUp * w * 0.3;
+        const lowerCtrl = ym + openH * 1.3 + w * 0.1 + avg * w * 0.2;
         el.mouthFill.setAttribute("d",
-          `M${xl} ${yc} Q${cx} ${upperCtrl} ${xr} ${yc} Q${cx} ${lowerCtrl} ${xl} ${yc}Z`);
+          `M${xl} ${yl} Q${cx} ${upperCtrl} ${xr} ${yr} Q${cx} ${lowerCtrl} ${xl} ${yl}Z`);
         el.mouthLine.setAttribute("d",
-          `M${xl} ${yc} Q${cx} ${lowerCtrl} ${xr} ${yc} M${xl} ${yc} Q${cx} ${upperCtrl} ${xr} ${yc}`);
+          `M${xl} ${yl} Q${cx} ${lowerCtrl} ${xr} ${yr} M${xl} ${yl} Q${cx} ${upperCtrl} ${xr} ${yr}`);
       } else {
+        // geschlossen: Lächeln = Schale (U), traurig = Bogen (∩)
+        const ctrl = cy + w * 0.12 + avg * w * 0.55 - upperUp * w * 0.15;
         el.mouthFill.setAttribute("d", "");
-        el.mouthLine.setAttribute("d",
-          `M${xl} ${yc} Q${cx} ${cy + w * 0.13 + smile * w * 0.33} ${xr} ${yc}`);
+        el.mouthLine.setAttribute("d", `M${xl} ${yl} Q${cx} ${ctrl} ${xr} ${yr}`);
       }
 
       // Zunge: breit, mit Mittelrille, länger je stärker tongueOut
@@ -262,7 +277,7 @@
         if (tg > 0.05) {
           const len = tg * w * 1.7 + openH * 0.4;
           const tw = w * 0.42;
-          const y0 = yc + openH * 0.15;
+          const y0 = ym + openH * 0.15;
           tongue.setAttribute("stroke-width", Math.max(2.5, w * 0.09));
           tongue.setAttribute("d",
             `M${cx - tw} ${y0} L${cx - tw} ${y0 + len * 0.55} ` +
@@ -360,11 +375,23 @@
       // Mund und Zunge
       let tg = smooth("tongue", Math.min(1, g("tongueOut") * TONGUE_GAIN), 0.4);
       if (forceTongue) tg = 1;
-      const open = smooth("open", Math.max(g("jawOpen"), tg * 0.6));
-      const smile = smooth("smile",
-        ((g("mouthSmileLeft") + g("mouthSmileRight")) -
-         (g("mouthFrownLeft") + g("mouthFrownRight"))) / 2 * 1.4);
-      drawMouth(open, clamp(smile, -1, 1), smooth("pucker", g("mouthPucker")), tg);
+
+      // Mundwinkel je Seite: Lächeln positiv, Traurig negativ
+      const corner = (side) => clamp(
+        g("mouthSmile" + side) * SMILE_GAIN - g("mouthFrown" + side) * FROWN_GAIN, -1, 1);
+      const smileL = smooth("smileL", corner("Left"), 0.5);
+      const smileR = smooth("smileR", corner("Right"), 0.5);
+
+      drawMouth({
+        open:    smooth("open", Math.max(g("jawOpen"), tg * 0.6), 0.5),
+        smileL, smileR,
+        pucker:  smooth("pucker", g("mouthPucker"), 0.4),
+        funnel:  smooth("funnel", g("mouthFunnel"), 0.4),
+        stretch: smooth("stretch", (g("mouthStretchLeft") + g("mouthStretchRight")) / 2, 0.4),
+        upperUp: smooth("upperUp", (g("mouthUpperUpLeft") + g("mouthUpperUpRight")) / 2, 0.4),
+        shift:   smooth("shift", g("mouthLeft") - g("mouthRight"), 0.4),
+        tg
+      });
 
       // Kopfhaltung, relativ zur Grundhaltung (Kalibrierung mit R)
       let roll = 0, yaw = 0, tilt = 0, near = state.near ?? 0;
