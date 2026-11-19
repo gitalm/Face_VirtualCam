@@ -1,18 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720"
+     data-fig='{"mouth":{"cx":360,"cy":485,"halfW":60,"openMax":90},"lid":112,"lookX":22,"lookY":12,"brow":{"inner":190,"outer":198,"up":30},"noseLift":12,"noseShift":0.9}'>
   <defs>
     <clipPath id="clipEyeL"><ellipse cx="270" cy="290" rx="48" ry="56"/></clipPath>
     <clipPath id="clipEyeR"><ellipse cx="450" cy="290" rx="48" ry="56"/></clipPath>
   </defs>
 
   <g id="head" style="transform-origin: 360px 360px">
-    <!-- Kopf -->
     <circle cx="360" cy="360" r="280" fill="#ffd966" stroke="#333" stroke-width="10"/>
 
-    <!-- Wangenröte -->
     <ellipse cx="190" cy="430" rx="45" ry="26" fill="#ff9a7a" opacity=".45"/>
     <ellipse cx="530" cy="430" rx="45" ry="26" fill="#ff9a7a" opacity=".45"/>
 
-    <!-- Augen links -->
+    <!-- Auge links -->
     <ellipse cx="270" cy="290" rx="48" ry="56" fill="#fff" stroke="#333" stroke-width="6"/>
     <g clip-path="url(#clipEyeL)">
       <g id="irisL">
@@ -22,7 +21,7 @@
     </g>
     <rect id="lidL" x="218" y="232" width="104" height="0" fill="#ffd966"/>
 
-    <!-- Augen rechts -->
+    <!-- Auge rechts -->
     <ellipse cx="450" cy="290" rx="48" ry="56" fill="#fff" stroke="#333" stroke-width="6"/>
     <g clip-path="url(#clipEyeR)">
       <g id="irisR">
@@ -32,7 +31,7 @@
     </g>
     <rect id="lidR" x="398" y="232" width="104" height="0" fill="#ffd966"/>
 
-    <!-- Augenbrauen (je zwei Linien, wie beim Philosophen) -->
+    <!-- Augenbrauen -->
     <line id="browL"  x1="215" y1="198" x2="320" y2="190" stroke="#333" stroke-width="16" stroke-linecap="round"/>
     <line id="browL2" x1="215" y1="198" x2="320" y2="190" stroke="#333" stroke-width="16" stroke-linecap="round"/>
     <line id="browR"  x1="400" y1="190" x2="505" y2="198" stroke="#333" stroke-width="16" stroke-linecap="round"/>
@@ -41,8 +40,8 @@
     <!-- Nase -->
     <path id="nose" d="M360 330 Q342 380 366 386" fill="none" stroke="#333" stroke-width="8" stroke-linecap="round"/>
 
-    <!-- Mund (per Skript gezeichnet) -->
+    <!-- Mund -->
     <path id="mouthFill" d="" fill="#a33"/>
-    <path id="mouthLine" d="M300 485 Q360 505 420 485" fill="none" stroke="#333" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="mouthLine" d="M300 485 Q360 520 420 485" fill="none" stroke="#333" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
 </svg>

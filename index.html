@@ -19,11 +19,10 @@
     #camBox small { display: block; color: #666; margin-top: .3rem; }
 
     /* Greenscreen-Modus: nur noch der Avatar */
-    body.clean { background: var(--bg); padding: 0; overflow: hidden; }
+    body.clean { background: var(--bg); padding: 0; overflow: hidden; cursor: none; }
     body.clean .ui, body.clean #camBox, body.clean h1 { display: none; }
     body.clean #stage { display: block; }
     body.clean #avatar { width: min(100vw, 100vh); height: min(100vw, 100vh); margin: 0 auto; border-radius: 0; }
-    body.clean { cursor: none; }
 
     #toast {
       position: fixed; left: 50%; bottom: 1rem; transform: translateX(-50%);
@@ -96,7 +95,7 @@
 
     // ================= Figuren-Ordner durchsuchen =================
     async function listFigures() {
-      // 1) Liste figures.json
+      // 1) Liste figures.json (funktioniert auch auf GitHub Pages)
       try {
         const r = await fetch("./assets/figures.json", { cache: "no-cache" });
         if (r.ok) {
@@ -104,7 +103,7 @@
           if (Array.isArray(list) && list.length) return list;
         }
       } catch {}
-      // 2) Verzeichnisliste des Servers (lokal: serve, python -m http.server)
+      // 2) Verzeichnisliste des Servers (lokal)
       try {
         const r = await fetch("./assets/", { cache: "no-cache" });
         if (r.ok) {
@@ -120,7 +119,6 @@
     }
 
     // ================= Figurenwerte =================
-    // Bekannte Figuren: feste Werte. Unbekannte werden aus der SVG berechnet.
     const KNOWN = {
       "philosoph.svg": {
         mouth: { cx: 348, cy: 358, halfW: 30, openMax: 40 },
@@ -175,6 +173,7 @@
       const q = (id) => $("avatar").querySelector("#" + id) || dummy;
       el = {
         head: q("head"),
+        body: q("body"), shoulderL: q("shoulderL"), shoulderR: q("shoulderR"),
         irisL: q("irisL"), irisR: q("irisR"),
         lidL: q("lidL"), lidR: q("lidR"),
         browL: [q("browL"), q("browL2")],
@@ -189,7 +188,7 @@
       let override = {};
       try { override = JSON.parse($("avatar").querySelector("svg")?.dataset.fig || "{}"); } catch {}
       cfg = { ...deriveConfig(el), ...(KNOWN[file] || {}), ...override };
-      drawMouth(0, 0.1, 0);
+      requestAnimationFrame(() => drawMouth(0, 0.1, 0));
     }
 
     // ================= Hilfsfunktionen =================
@@ -219,6 +218,34 @@
         el.mouthFill.setAttribute("d", "");
         el.mouthLine.setAttribute("d",
           `M${xl} ${yc} Q${cx} ${cy + w * 0.13 + smile * w * 0.33} ${xr} ${yc}`);
+      }
+    }
+
+    // ================= Körper und Schultern =================
+    // Atmet, folgt dem Kopf träge, zuckt bei hochgezogenen Brauen mit den Schultern.
+    // Figuren ohne body/shoulderL/shoulderR werden übersprungen.
+    function moveBody(t, roll, yaw, tilt) {
+      const breath = Math.sin(t / 1100);                       // -1..1
+      const bx = smooth("bodyX", yaw * 0.5, 0.06);
+      const br = smooth("bodyRoll", roll * 0.3, 0.06);
+      const by = smooth("bodyY", tilt * 0.4, 0.08);
+      const shrug = smooth("shrug", (state.browUp ?? 0) * 14, 0.1);
+
+      if (el.body !== dummy) {
+        el.body.style.transform =
+          `translate(${bx}px, ${breath * 3 + by}px) rotate(${br}deg)`;
+      }
+
+      // Schultern: zusätzlich zum Körper, leicht gegenläufig beim Atmen
+      const turnL = Math.max(0, yaw) * 0.25;                   // Kopf dreht -> eine Schulter höher
+      const turnR = Math.max(0, -yaw) * 0.25;
+      if (el.shoulderL !== dummy) {
+        el.shoulderL.style.transform =
+          `translateY(${-(shrug + breath * 2 + turnL)}px) rotate(${-shrug * 0.15}deg)`;
+      }
+      if (el.shoulderR !== dummy) {
+        el.shoulderR.style.transform =
+          `translateY(${-(shrug + breath * 2 + turnR)}px) rotate(${shrug * 0.15}deg)`;
       }
     }
 
@@ -262,30 +289,36 @@
       drawMouth(open, Math.max(-1, Math.min(1, smile)), smooth("pucker", g("mouthPucker")));
 
       // Kopf
-      let yaw = 0;
+      let yaw = 0, roll = 0, tilt = 0;
       if (matrix) {
         const m = matrix.data;
-        const roll = smooth("roll", Math.atan2(m[1], m[0]) * 180 / Math.PI);
-        yaw = smooth("yaw", Math.asin(Math.max(-1, Math.min(1, -m[8]))) * 180 / Math.PI);
+        roll = smooth("roll", Math.atan2(m[1], m[0]) * 180 / Math.PI);
+        yaw  = smooth("yaw",  Math.asin(Math.max(-1, Math.min(1, -m[8]))) * 180 / Math.PI);
+        tilt = smooth("tilt", Math.asin(Math.max(-1, Math.min(1,  m[9]))) * 180 / Math.PI);
         el.head.style.transform = `translateX(${yaw * 1.2}px) rotate(${roll}deg)`;
       }
+      moveBody(performance.now(), roll, yaw, tilt);
 
-      // Nase: rümpfen = anheben und etwas größer, Kopfdrehung = leichte Verschiebung
+      // Nase
       const sneer = smooth("sneer", (g("noseSneerLeft") + g("noseSneerRight")) / 2);
       el.nose.style.transform =
         `translate(${yaw * cfg.noseShift}px, ${-sneer * cfg.noseLift}px) scale(${1 + sneer * 0.15})`;
     }
 
-    // ================= Schleife =================
+    // ================= Schleife (läuft immer, auch vor dem Kamerastart) =================
     let landmarker = null, lastTime = -1;
     function loop() {
-      if (video.readyState >= 2 && video.currentTime !== lastTime) {
+      let tracked = false;
+      if (landmarker && video.readyState >= 2 && video.currentTime !== lastTime) {
         lastTime = video.currentTime;
         const r = landmarker.detectForVideo(video, performance.now());
         if (r.faceBlendshapes?.length > 0) {
           apply(r.faceBlendshapes[0].categories, r.facialTransformationMatrixes?.[0]);
+          tracked = true;
         }
       }
+      // Ohne neue Gesichtsdaten: Körper atmet trotzdem weiter
+      if (!tracked && cfg) moveBody(performance.now(), state.roll ?? 0, state.yaw ?? 0, state.tilt ?? 0);
       requestAnimationFrame(loop);
     }
 
@@ -296,6 +329,7 @@
     $("figSelect").addEventListener("change", (e) => loadFigure(e.target.value));
     const saved = localStorage.getItem("avatarFig");
     await loadFigure(files.includes(saved) ? saved : files[0]);
+    loop();
 
     startBtn.addEventListener("click", async () => {
       startBtn.disabled = true;
@@ -316,7 +350,6 @@
         await video.play();
         status.textContent = "Läuft! Mit „Greenscreen-Ansicht“ blendest du alles außer der Figur aus.";
         startBtn.style.display = "none";
-        loop();
       } catch (err) {
         console.error(err);
         status.textContent = "Fehler: " + err.message;
