@@ -424,4 +424,59 @@
           moveHead(state.cRoll ?? 0, state.cYaw ?? 0, state.cTilt ?? 0, n);
           moveBody(performance.now(), state.cRoll ?? 0, state.cYaw ?? 0, state.cTilt ?? 0, n);
         }
-      
+      } catch (err) {
+        console.error(err);
+      }
+      requestAnimationFrame(loop);
+    }
+
+    // ================= Start =================
+    async function safeLoad(file) {
+      try {
+        await loadFigure(file);
+      } catch (err) {
+        console.error("Figur konnte nicht geladen werden:", file, err);
+        status.textContent = "Fehler bei „" + file + "“: " + err.message;
+      }
+    }
+
+    async function init() {
+      const files = await listFigures();
+      $("figSelect").innerHTML = files
+        .map((f) => `<option value="${f}">${f.replace(/\.svg$/i, "")}</option>`).join("");
+      $("figSelect").addEventListener("change", (e) => safeLoad(e.target.value));
+      const saved = localStorage.getItem("avatarFig");
+      await safeLoad(files.includes(saved) ? saved : files[0]);
+      loop();
+    }
+    init();
+
+    // ================= Kamera =================
+    startBtn.addEventListener("click", async () => {
+      startBtn.disabled = true;
+      try {
+        status.textContent = "Modell wird geladen …";
+        const fileset = await FilesetResolver.forVisionTasks("./vendor/wasm");
+        landmarker = await FaceLandmarker.createFromOptions(fileset, {
+          baseOptions: { modelAssetPath: "./models/face_landmarker.task" },
+          runningMode: "VIDEO",
+          numFaces: 1,
+          outputFaceBlendshapes: true,
+          outputFacialTransformationMatrixes: true
+        });
+        status.textContent = "Kamera wird gestartet …";
+        video.srcObject = await navigator.mediaDevices.getUserMedia({
+          video: { width: 640, height: 480, facingMode: "user" }
+        });
+        await video.play();
+        status.textContent = "Läuft! Schau gerade in die Kamera. Mit R kalibrierst du die Haltung neu.";
+        startBtn.style.display = "none";
+      } catch (err) {
+        console.error(err);
+        status.textContent = "Fehler: " + err.message;
+        startBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
