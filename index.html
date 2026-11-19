@@ -300,10 +300,23 @@
       moveBody(performance.now(), roll, yaw, tilt);
 
       // Nase
-      const sneer = smooth("sneer", (g("noseSneerLeft") + g("noseSneerRight")) / 2);
-      el.nose.style.transform =
-        `translate(${yaw * cfg.noseShift}px, ${-sneer * cfg.noseLift}px) scale(${1 + sneer * 0.15})`;
-    }
+// Nase: mehrere Einflüsse, stark geglättet, damit es organisch wirkt
+const sneer  = smooth("sneer", (g("noseSneerLeft") + g("noseSneerRight")) / 2, 0.3);
+const sneerD = smooth("sneerD", (g("noseSneerLeft") - g("noseSneerRight")), 0.3);  // einseitig
+const cheek  = smooth("cheek", (g("cheekSquintLeft") + g("cheekSquintRight")) / 2, 0.3);
+const smileN = smooth("smileN", (g("mouthSmileLeft") + g("mouthSmileRight")) / 2, 0.2);
+const jaw    = smooth("jawN", g("jawOpen"), 0.2);
+const breathN = Math.sin(performance.now() / 1100) * 0.004;       // Nasenflügel atmen
+
+const nx = yaw * cfg.noseShift + sneerD * cfg.noseLift * 0.5;
+const ny = -sneer * cfg.noseLift - smileN * cfg.noseLift * 0.35
+           - cheek * cfg.noseLift * 0.3 + jaw * cfg.noseLift * 0.2;
+const sx = 1 + sneer * 0.18 + smileN * 0.06 + breathN;             // breiter beim Rümpfen/Lächeln
+const sy = 1 - cheek * 0.08 + sneer * 0.06 + breathN;
+const rot = sneerD * 6 + roll * 0.1;                               // Neigung bei einseitigem Rümpfen
+
+el.nose.style.transform =
+  `translate(${nx}px, ${ny}px) rotate(${rot}deg) scale(${sx}, ${sy})`;
 
     // ================= Schleife (läuft immer, auch vor dem Kamerastart) =================
     let landmarker = null, lastTime = -1;
