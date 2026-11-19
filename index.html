@@ -1,178 +1,328 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720">
-  <defs>
-    <!-- Lorbeerblatt -->
-    <linearGradient id="leafGrad" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#4fc23a"/>
-      <stop offset="1" stop-color="#2a8a1e"/>
-    </linearGradient>
-    <g id="leaf">
-      <path d="M0 0 Q16 -20 0 -48 Q-16 -20 0 0Z" fill="url(#leafGrad)" stroke="#14440f" stroke-width="3" stroke-linejoin="round"/>
-      <path d="M0 -4 L0 -38" stroke="#1d6a14" stroke-width="2" stroke-linecap="round"/>
-    </g>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Face-Tracking-Avatar</title>
+  <style>
+    :root { --bg: #00B140; }
+    body { font-family: system-ui, sans-serif; text-align: center; margin: 0; padding: 1rem; background: #f4f6fb; }
+    h1 { margin: .2rem 0 .6rem; font-size: 1.5rem; }
+    .ui { display: flex; gap: .8rem; justify-content: center; flex-wrap: wrap; align-items: center; margin-bottom: .6rem; }
+    button, select { font-size: 1rem; padding: .5rem 1rem; border-radius: 8px; cursor: pointer; }
+    #status { color: #444; }
+    #stage { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; align-items: flex-start; }
+    #avatar { width: min(90vw, 560px); background: var(--bg); border-radius: 16px; overflow: hidden; }
+    #avatar svg { display: block; width: 100%; height: auto; }
+    #camBox { position: relative; }
+    #cam { width: 240px; border-radius: 16px; transform: scaleX(-1); background: #222; display: block; }
+    #camBox small { display: block; color: #666; margin-top: .3rem; }
 
-    <!-- Toga -->
-    <linearGradient id="toga" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ffffff"/>
-      <stop offset="1" stop-color="#c3d0e6"/>
-    </linearGradient>
+    /* Greenscreen-Modus: nur noch der Avatar */
+    body.clean { background: var(--bg); padding: 0; overflow: hidden; }
+    body.clean .ui, body.clean #camBox, body.clean h1 { display: none; }
+    body.clean #stage { display: block; }
+    body.clean #avatar { width: min(100vw, 100vh); height: min(100vw, 100vh); margin: 0 auto; border-radius: 0; }
+    body.clean { cursor: none; }
 
-    <!-- Haut -->
-    <linearGradient id="skinBody" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#f7bd90"/>
-      <stop offset="1" stop-color="#e79c6c"/>
-    </linearGradient>
+    #toast {
+      position: fixed; left: 50%; bottom: 1rem; transform: translateX(-50%);
+      background: #000a; color: #fff; padding: .5rem 1rem; border-radius: 8px;
+      opacity: 0; transition: opacity .4s; pointer-events: none;
+    }
+    #toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <h1>Face-Tracking-Avatar</h1>
 
-    <!-- Haare und Bart -->
-    <linearGradient id="hairGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffffff"/>
-      <stop offset="1" stop-color="#cfd9ea"/>
-    </linearGradient>
-    <linearGradient id="beardGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffffff"/>
-      <stop offset="1" stop-color="#c9d4e6"/>
-    </linearGradient>
+  <div class="ui">
+    <button id="start">Kamera starten</button>
+    <label>Figur: <select id="figSelect"></select></label>
+    <label>Hintergrund:
+      <select id="bgSelect">
+        <option value="#00B140">Greenscreen (#00B140)</option>
+        <option value="#00FF00">Hellgrün (#00FF00)</option>
+        <option value="#0047BB">Bluescreen (#0047BB)</option>
+        <option value="#FF00FF">Magenta (#FF00FF)</option>
+        <option value="#dfe8ff">Hellblau (neutral)</option>
+      </select>
+    </label>
+    <button id="cleanBtn">🟩 Greenscreen-Ansicht</button>
+  </div>
+  <p id="status" class="ui">Die Kamerabilder werden nur lokal in deinem Browser verarbeitet.</p>
 
-    <!-- Iris -->
-    <radialGradient id="irisGrad" cx="0.5" cy="0.4" r="0.6">
-      <stop offset="0" stop-color="#5fc3f0"/>
-      <stop offset="1" stop-color="#1a7fba"/>
-    </radialGradient>
+  <div id="stage">
+    <div id="camBox">
+      <video id="cam" autoplay playsinline muted></video>
+      <small>Kamera-Test (gespiegelt)</small>
+    </div>
+    <div id="avatar" aria-label="Animierte Figur"></div>
+  </div>
 
-    <!-- Masken: Iris bleibt im Auge -->
-    <clipPath id="clipEyeL"><ellipse cx="292" cy="240" rx="28" ry="21"/></clipPath>
-    <clipPath id="clipEyeR"><ellipse cx="405" cy="244" rx="28" ry="21"/></clipPath>
-  </defs>
+  <div id="toast">Beenden mit Esc oder Doppelklick</div>
 
-  <!-- ============ Körper ============ -->
-  <g id="body" stroke="#1a2a4a" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
-    <!-- Schulter, Arm und Hals -->
-    <path d="M85 720 C80 620 95 520 150 485 C190 465 240 450 290 440 L430 440 L470 720Z" fill="url(#skinBody)"/>
-    <!-- Schulterglanz -->
-    <path d="M118 525 Q145 500 178 512" fill="none" stroke="#fbd5b3" stroke-width="12"/>
-    <!-- Muskelschatten -->
-    <path d="M110 640 Q130 600 160 590" fill="none" stroke="#d58a5d" stroke-width="4"/>
-    <!-- Schlüsselbein -->
-    <path d="M250 452 Q330 474 410 442" fill="none" stroke="#c9885a" stroke-width="3"/>
+  <script type="module">
+    import { FaceLandmarker, FilesetResolver } from "./vendor/vision_bundle.mjs";
 
-    <!-- Toga: breite Bahn -->
-    <path d="M160 600 C260 590 360 520 440 430 L520 430 C500 520 520 640 560 720 L190 720 C170 680 160 640 160 600Z" fill="url(#toga)"/>
-    <!-- Toga: rechte Schulter -->
-    <path d="M440 430 C480 425 540 430 580 450 C640 500 680 620 700 720 L560 720 C520 640 500 520 520 430Z" fill="url(#toga)"/>
-    <!-- Faltenschatten -->
-    <g fill="none" stroke="#9fb0cf" stroke-width="3">
-      <path d="M200 640 C290 620 380 560 450 470"/>
-      <path d="M250 700 C330 660 410 600 480 520"/>
-      <path d="M540 450 C560 540 580 640 600 720"/>
-      <path d="M580 470 C610 560 640 650 650 720"/>
-    </g>
-  </g>
+    const $ = (id) => document.getElementById(id);
+    const video = $("cam"), status = $("status"), startBtn = $("start");
+    const root = document.documentElement;
 
-  <!-- ============ Kopf (wird bewegt) ============ -->
-  <g id="head" style="transform-origin: 350px 400px">
+    // ================= Hintergrund =================
+    const savedBg = localStorage.getItem("avatarBg");
+    if (savedBg) { root.style.setProperty("--bg", savedBg); $("bgSelect").value = savedBg; }
+    $("bgSelect").addEventListener("change", (e) => {
+      root.style.setProperty("--bg", e.target.value);
+      localStorage.setItem("avatarBg", e.target.value);
+    });
 
-    <!-- Haare hinten -->
-    <path d="M205 300 C180 220 215 120 300 85 C340 60 420 70 470 120 C530 170 545 260 520 340 C500 380 490 330 480 300 L220 330Z"
-          fill="url(#hairGrad)" stroke="#1a2a4a" stroke-width="4" stroke-linejoin="round"/>
-    <!-- Strähnen hinten -->
-    <g fill="none" stroke="#b7c4dc" stroke-width="3" stroke-linecap="round">
-      <path d="M215 250 Q208 290 220 330"/>
-      <path d="M232 230 Q226 270 236 310"/>
-      <path d="M508 240 Q518 285 506 335"/>
-      <path d="M490 225 Q500 270 490 315"/>
-    </g>
+    // ================= Greenscreen-Ansicht =================
+    function toast() {
+      const t = $("toast");
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2500);
+    }
+    function setClean(on) {
+      document.body.classList.toggle("clean", on);
+      if (on) toast();
+    }
+    $("cleanBtn").addEventListener("click", () => setClean(true));
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") setClean(false); });
+    document.addEventListener("dblclick", () => {
+      if (document.body.classList.contains("clean")) setClean(false);
+    });
+    if (new URLSearchParams(location.search).has("clean")) setClean(true);
 
-    <!-- Ohren -->
-    <ellipse cx="228" cy="285" rx="20" ry="36" fill="#f0a878" stroke="#1a2a4a" stroke-width="4"/>
-    <path d="M226 270 Q216 285 228 302" fill="none" stroke="#c9885a" stroke-width="3" stroke-linecap="round"/>
-    <ellipse cx="498" cy="290" rx="20" ry="36" fill="#f0a878" stroke="#1a2a4a" stroke-width="4"/>
-    <path d="M500 275 Q510 290 498 307" fill="none" stroke="#c9885a" stroke-width="3" stroke-linecap="round"/>
+    // ================= Figuren-Ordner durchsuchen =================
+    async function listFigures() {
+      // 1) Liste figures.json
+      try {
+        const r = await fetch("./assets/figures.json", { cache: "no-cache" });
+        if (r.ok) {
+          const list = await r.json();
+          if (Array.isArray(list) && list.length) return list;
+        }
+      } catch {}
+      // 2) Verzeichnisliste des Servers (lokal: serve, python -m http.server)
+      try {
+        const r = await fetch("./assets/", { cache: "no-cache" });
+        if (r.ok) {
+          const doc = new DOMParser().parseFromString(await r.text(), "text/html");
+          const files = [...doc.querySelectorAll("a")]
+            .map((a) => decodeURIComponent(a.getAttribute("href") || "").split("/").pop())
+            .filter((n) => n.toLowerCase().endsWith(".svg"));
+          if (files.length) return [...new Set(files)];
+        }
+      } catch {}
+      // 3) Notlösung
+      return ["philosoph.svg", "smiley.svg"];
+    }
 
-    <!-- Gesicht -->
-    <path d="M250 190 C250 130 300 110 350 112 C410 112 465 135 468 200 C472 260 460 330 430 360 L270 360 C245 320 245 250 250 190Z"
-          fill="#f6b88a" stroke="#1a2a4a" stroke-width="4" stroke-linejoin="round"/>
+    // ================= Figurenwerte =================
+    // Bekannte Figuren: feste Werte. Unbekannte werden aus der SVG berechnet.
+    const KNOWN = {
+      "philosoph.svg": {
+        mouth: { cx: 348, cy: 358, halfW: 30, openMax: 40 },
+        lid: 42, lookX: 12, lookY: 6,
+        brow: { inner: 190, outer: 198, up: 18 },
+        noseLift: 6, noseShift: 0.45
+      },
+      "smiley.svg": {
+        mouth: { cx: 360, cy: 485, halfW: 60, openMax: 90 },
+        lid: 112, lookX: 22, lookY: 12,
+        brow: { inner: 190, outer: 198, up: 30 },
+        noseLift: 12, noseShift: 0.9
+      }
+    };
 
-    <!-- Schatten an den Schläfen -->
-    <path d="M252 200 C247 260 250 310 272 355 C262 310 258 250 262 200Z" fill="#e0996c" opacity=".5"/>
-    <path d="M466 205 C470 262 462 320 432 358 C452 315 456 255 454 205Z" fill="#e0996c" opacity=".5"/>
+    function deriveConfig(el) {
+      const cfg = {
+        mouth: { cx: 360, cy: 500, halfW: 40, openMax: 60 },
+        lid: 60, lookX: 12, lookY: 6,
+        brow: { inner: 190, outer: 198, up: 20 },
+        noseLift: 8, noseShift: 0.6
+      };
+      try {
+        const m = el.mouthLine.getBBox();
+        const halfW = m.width / 2;
+        cfg.mouth = { cx: m.x + halfW, cy: m.y + m.height / 2, halfW, openMax: halfW * 1.3 };
+        const ib = el.irisL.getBBox();
+        cfg.lid = ib.height * 2.2;
+        cfg.lookX = ib.width * 0.6;
+        cfg.lookY = ib.height * 0.3;
+        cfg.brow = {
+          inner: +el.browR[0].getAttribute("y1"),
+          outer: +el.browR[0].getAttribute("y2"),
+          up: halfW * 0.6
+        };
+        cfg.noseLift = halfW * 0.2;
+        cfg.noseShift = halfW * 0.015;
+      } catch {}
+      return cfg;
+    }
 
-    <!-- Wangenröte -->
-    <ellipse cx="282" cy="305" rx="26" ry="14" fill="#f28b7a" opacity=".35"/>
-    <ellipse cx="418" cy="308" rx="26" ry="14" fill="#f28b7a" opacity=".35"/>
+    // ================= Figur laden =================
+    let el = {}, cfg = null;
+    const dummy = document.createElementNS("http://www.w3.org/2000/svg", "g");
 
-    <!-- Stirnfalten -->
-    <path d="M298 150 Q350 138 412 150 M310 168 Q350 160 396 168 M322 184 Q350 178 378 184"
-          fill="none" stroke="#d98e62" stroke-width="3" stroke-linecap="round"/>
-    <!-- Lachfältchen -->
-    <path d="M250 245 Q244 252 248 262 M470 250 Q476 257 472 267"
-          fill="none" stroke="#d98e62" stroke-width="2.5" stroke-linecap="round"/>
+    async function loadFigure(file) {
+      const res = await fetch("./assets/" + encodeURIComponent(file));
+      $("avatar").innerHTML = await res.text();
+      localStorage.setItem("avatarFig", file);
+      $("figSelect").value = file;
 
-    <!-- Haare oben (Stirnansatz) -->
-    <path d="M250 195 C240 130 290 85 360 80 C430 85 470 130 468 200 C455 150 420 125 350 122 C290 125 260 150 250 195Z"
-          fill="url(#hairGrad)" stroke="#1a2a4a" stroke-width="4" stroke-linejoin="round"/>
-    <g fill="none" stroke="#b7c4dc" stroke-width="3" stroke-linecap="round">
-      <path d="M300 112 Q330 92 370 90"/>
-      <path d="M380 92 Q420 98 445 125"/>
-      <path d="M270 150 Q285 125 310 112"/>
-    </g>
+      const q = (id) => $("avatar").querySelector("#" + id) || dummy;
+      el = {
+        head: q("head"),
+        irisL: q("irisL"), irisR: q("irisR"),
+        lidL: q("lidL"), lidR: q("lidR"),
+        browL: [q("browL"), q("browL2")],
+        browR: [q("browR"), q("browR2")],
+        nose: q("nose"),
+        mouthFill: q("mouthFill"), mouthLine: q("mouthLine")
+      };
+      el.nose.style.transformBox = "fill-box";
+      el.nose.style.transformOrigin = "center";
 
-    <!-- Bart -->
-    <path d="M222 290 C215 380 250 470 340 490 C430 480 490 400 480 290 C470 340 440 370 420 375 L280 375 C255 370 230 340 222 290Z"
-          fill="url(#beardGrad)" stroke="#1a2a4a" stroke-width="4" stroke-linejoin="round"/>
-    <!-- Bartsträhnen -->
-    <g fill="none" stroke="#b3c0d8" stroke-width="3" stroke-linecap="round">
-      <path d="M245 345 Q250 400 285 450"/>
-      <path d="M275 380 Q285 430 315 472"/>
-      <path d="M330 395 Q335 440 340 480"/>
-      <path d="M390 385 Q388 430 372 472"/>
-      <path d="M430 370 Q425 415 395 455"/>
-      <path d="M462 335 Q458 385 428 430"/>
-    </g>
+      // Werte: berechnet -> bekannt -> data-fig im <svg>-Tag
+      let override = {};
+      try { override = JSON.parse($("avatar").querySelector("svg")?.dataset.fig || "{}"); } catch {}
+      cfg = { ...deriveConfig(el), ...(KNOWN[file] || {}), ...override };
+      drawMouth(0, 0.1, 0);
+    }
 
-    <!-- Hautfläche unter dem Schnurrbart -->
-    <ellipse cx="348" cy="352" rx="55" ry="26" fill="#f0a878"/>
+    // ================= Hilfsfunktionen =================
+    const state = {};
+    const smooth = (key, v, a = 0.4) =>
+      (state[key] = key in state ? state[key] * (1 - a) + v * a : v);
+    const get = (shapes, name) => shapes.find((s) => s.categoryName === name)?.score ?? 0;
+    const setBrow = (lines, y1, y2) =>
+      lines.forEach((l) => { l.setAttribute("y1", y1); l.setAttribute("y2", y2); });
 
-    <!-- ============ Augen ============ -->
-    <!-- links -->
-    <ellipse cx="292" cy="240" rx="28" ry="21" fill="#fff" stroke="#1a2a4a" stroke-width="3"/>
-    <g clip-path="url(#clipEyeL)">
-      <g id="irisL">
-        <circle id="pupilL" cx="292" cy="240" r="16" fill="url(#irisGrad)" stroke="#0d3a5c" stroke-width="2"/>
-        <circle cx="292" cy="240" r="7" fill="#0a1a2a"/>
-        <circle cx="297" cy="234" r="4" fill="#fff"/>
-        <circle cx="288" cy="246" r="2" fill="#fff" opacity=".8"/>
-      </g>
-    </g>
-    <rect id="lidL" x="262" y="217" width="60" height="0" fill="#f6b88a"/>
+    // ================= Mund =================
+    function drawMouth(open, smile, pucker) {
+      const { cx, cy, halfW: w, openMax } = cfg.mouth;
+      const halfW = w - pucker * w * 0.45;
+      const yc = cy - smile * w * 0.27;
+      const xl = cx - halfW, xr = cx + halfW;
+      const openH = open * openMax;
+      const upperCtrl = cy - w * 0.13;
+      const lowerCtrl = cy + openH * 1.3 + w * 0.13;
 
-    <!-- rechts -->
-    <ellipse cx="405" cy="244" rx="28" ry="21" fill="#fff" stroke="#1a2a4a" stroke-width="3"/>
-    <g clip-path="url(#clipEyeR)">
-      <g id="irisR">
-        <circle id="pupilR" cx="405" cy="244" r="16" fill="url(#irisGrad)" stroke="#0d3a5c" stroke-width="2"/>
-        <circle cx="405" cy="244" r="7" fill="#0a1a2a"/>
-        <circle cx="410" cy="238" r="4" fill="#fff"/>
-        <circle cx="401" cy="250" r="2" fill="#fff" opacity=".8"/>
-      </g>
-    </g>
-    <rect id="lidR" x="375" y="221" width="60" height="0" fill="#f6b88a"/>
+      if (openH > 2) {
+        el.mouthFill.setAttribute("d",
+          `M${xl} ${yc} Q${cx} ${upperCtrl} ${xr} ${yc} Q${cx} ${lowerCtrl} ${xl} ${yc}Z`);
+        el.mouthLine.setAttribute("d",
+          `M${xl} ${yc} Q${cx} ${lowerCtrl} ${xr} ${yc} M${xl} ${yc} Q${cx} ${upperCtrl} ${xr} ${yc}`);
+      } else {
+        el.mouthFill.setAttribute("d", "");
+        el.mouthLine.setAttribute("d",
+          `M${xl} ${yc} Q${cx} ${cy + w * 0.13 + smile * w * 0.33} ${xr} ${yc}`);
+      }
+    }
 
-    <!-- Lidfalten über den Augen -->
-    <path d="M262 222 Q292 205 322 222 M375 226 Q405 209 435 226"
-          fill="none" stroke="#c9885a" stroke-width="2.5" stroke-linecap="round"/>
+    // ================= Animation =================
+    // Spiegelprinzip: linkes Auge der Person = rechtes Auge im Bild
+    function apply(shapes, matrix) {
+      const g = (n) => get(shapes, n);
 
-    <!-- Nase -->
-    <path id="nose" d="M330 255 Q300 285 320 300 Q345 312 372 298 Q390 282 362 255 Q350 245 330 255Z"
-          fill="#f0a878" stroke="#1a2a4a" stroke-width="3.5" stroke-linejoin="round"/>
+      // Blinzeln
+      el.lidR.setAttribute("height", smooth("blinkL", g("eyeBlinkLeft"), 0.6) * cfg.lid);
+      el.lidL.setAttribute("height", smooth("blinkR", g("eyeBlinkRight"), 0.6) * cfg.lid);
 
-    <!-- Augenbrauen (Umriss + weiße Füllung) -->
-    <line id="browL"  x1="255" y1="198" x2="320" y2="190" stroke="#1a2a4a" stroke-width="24" stroke-linecap="round"/>
-    <line id="browL2" x1="255" y1="198" x2="320" y2="190" stroke="#f2f5fa" stroke-width="17" stroke-linecap="round"/>
-    <line id="browR"  x1="380" y1="190" x2="445" y2="198" stroke="#1a2a4a" stroke-width="24" stroke-linecap="round"/>
-    <line id="browR2" x1="380" y1="190" x2="445" y2="198" stroke="#f2f5fa" stroke-width="17" stroke-linecap="round"/>
+      // Blick
+      const lookX = smooth("lookX",
+        (g("eyeLookOutLeft") - g("eyeLookInLeft") +
+         g("eyeLookInRight") - g("eyeLookOutRight")) / 2);
+      const lookY = smooth("lookY",
+        (g("eyeLookDownLeft") + g("eyeLookDownRight") -
+         g("eyeLookUpLeft") - g("eyeLookUpRight")) / 2);
+      const t = `translate(${-lookX * cfg.lookX} ${lookY * cfg.lookY})`;
+      el.irisL.setAttribute("transform", t);
+      el.irisR.setAttribute("transform", t);
 
-    <!-- Mund (per Skript gezeichnet) -->
-    <path id="mouthFill" d="" fill="#8f2a2a"/>
-    <path id="mouthLine" d="M318 358 Q348 366 378 358" fill="none" stroke="#b5654a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      // Augenbrauen
+      const { inner, outer, up: u } = cfg.brow;
+      const inUp = smooth("browUp", g("browInnerUp"));
+      const dL = smooth("dL", g("browDownLeft")),  dR = smooth("dR", g("browDownRight"));
+      const oL = smooth("oL", g("browOuterUpLeft")), oR = smooth("oR", g("browOuterUpRight"));
+      setBrow(el.browR,
+        inner - inUp * u + dL * u * 0.7,
+        outer - inUp * u / 3 - oL * u * 0.9 + dL * u / 3);
+      setBrow(el.browL,
+        outer - inUp * u / 3 - oR * u * 0.9 + dR * u / 3,
+        inner - inUp * u + dR * u * 0.7);
 
-    <!-- Schnurrbart -->
-    <path d="M345 318 C320 300 285 305 262 322 C275 345 320 350 345 335 C372 350
+      // Mund
+      const open = smooth("open", g("jawOpen"));
+      const smile = smooth("smile",
+        ((g("mouthSmileLeft") + g("mouthSmileRight")) -
+         (g("mouthFrownLeft") + g("mouthFrownRight"))) / 2 * 1.4);
+      drawMouth(open, Math.max(-1, Math.min(1, smile)), smooth("pucker", g("mouthPucker")));
+
+      // Kopf
+      let yaw = 0;
+      if (matrix) {
+        const m = matrix.data;
+        const roll = smooth("roll", Math.atan2(m[1], m[0]) * 180 / Math.PI);
+        yaw = smooth("yaw", Math.asin(Math.max(-1, Math.min(1, -m[8]))) * 180 / Math.PI);
+        el.head.style.transform = `translateX(${yaw * 1.2}px) rotate(${roll}deg)`;
+      }
+
+      // Nase: rümpfen = anheben und etwas größer, Kopfdrehung = leichte Verschiebung
+      const sneer = smooth("sneer", (g("noseSneerLeft") + g("noseSneerRight")) / 2);
+      el.nose.style.transform =
+        `translate(${yaw * cfg.noseShift}px, ${-sneer * cfg.noseLift}px) scale(${1 + sneer * 0.15})`;
+    }
+
+    // ================= Schleife =================
+    let landmarker = null, lastTime = -1;
+    function loop() {
+      if (video.readyState >= 2 && video.currentTime !== lastTime) {
+        lastTime = video.currentTime;
+        const r = landmarker.detectForVideo(video, performance.now());
+        if (r.faceBlendshapes?.length > 0) {
+          apply(r.faceBlendshapes[0].categories, r.facialTransformationMatrixes?.[0]);
+        }
+      }
+      requestAnimationFrame(loop);
+    }
+
+    // ================= Start =================
+    const files = await listFigures();
+    $("figSelect").innerHTML = files
+      .map((f) => `<option value="${f}">${f.replace(/\.svg$/i, "")}</option>`).join("");
+    $("figSelect").addEventListener("change", (e) => loadFigure(e.target.value));
+    const saved = localStorage.getItem("avatarFig");
+    await loadFigure(files.includes(saved) ? saved : files[0]);
+
+    startBtn.addEventListener("click", async () => {
+      startBtn.disabled = true;
+      try {
+        status.textContent = "Modell wird geladen …";
+        const fileset = await FilesetResolver.forVisionTasks("./vendor/wasm");
+        landmarker = await FaceLandmarker.createFromOptions(fileset, {
+          baseOptions: { modelAssetPath: "./models/face_landmarker.task" },
+          runningMode: "VIDEO",
+          numFaces: 1,
+          outputFaceBlendshapes: true,
+          outputFacialTransformationMatrixes: true
+        });
+        status.textContent = "Kamera wird gestartet …";
+        video.srcObject = await navigator.mediaDevices.getUserMedia({
+          video: { width: 640, height: 480, facingMode: "user" }
+        });
+        await video.play();
+        status.textContent = "Läuft! Mit „Greenscreen-Ansicht“ blendest du alles außer der Figur aus.";
+        startBtn.style.display = "none";
+        loop();
+      } catch (err) {
+        console.error(err);
+        status.textContent = "Fehler: " + err.message;
+        startBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
