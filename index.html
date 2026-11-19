@@ -386,24 +386,25 @@
       moveHead(roll, yaw, tilt, near);
       moveBody(performance.now(), roll, yaw, tilt, near);
 
-      // Nase: mehrere Einflüsse, stark geglättet, mit Verstärkung
+      // Nase: Rümpfen bewegt sie deutlich, alles andere nur dezent und begrenzt
+      const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
       const sneer  = smooth("sneer", (g("noseSneerLeft") + g("noseSneerRight")) / 2, 0.3);
       const sneerD = smooth("sneerD", g("noseSneerLeft") - g("noseSneerRight"), 0.3);
-      const cheek  = smooth("cheek", (g("cheekSquintLeft") + g("cheekSquintRight")) / 2, 0.3);
       const smileN = smooth("smileN", (g("mouthSmileLeft") + g("mouthSmileRight")) / 2, 0.2);
-      const jaw    = smooth("jawN", g("jawOpen"), 0.2);
-      const breathN = Math.sin(performance.now() / 1100) * 0.008;
+      const breathN = Math.sin(performance.now() / 1100) * 0.006;
 
       const L = cfg.noseLift * NOSE_GAIN;
-      const nx = yaw * cfg.noseShift * NOSE_GAIN + sneerD * L * 0.6;
-      const ny = -sneer * L - smileN * L * 0.5 - cheek * L * 0.4 + jaw * L * 0.3;
-      const sx = 1 + (sneer * 0.3 + smileN * 0.1) * NOSE_GAIN * 0.7 + breathN;
-      const sy = 1 + (sneer * 0.1 - cheek * 0.12) * NOSE_GAIN * 0.7 + breathN;
-      const rot = sneerD * 9 + roll * 0.15;
+
+      // Seitenversatz: nur ein kleiner 3D-Effekt, hart begrenzt
+      const nx = clamp(yaw * cfg.noseShift * 0.25, -6, 6) + sneerD * L * 0.4;
+      // Hoch nur beim Rümpfen, beim Lächeln minimal
+      const ny = -sneer * L - smileN * L * 0.1;
+      const sx = 1 + sneer * 0.25 * NOSE_GAIN * 0.7 + smileN * 0.04 + breathN;
+      const sy = 1 + sneer * 0.08 * NOSE_GAIN * 0.7 + breathN;
+      const rot = sneerD * 8;
 
       el.nose.style.transform =
         `translate(${nx}px, ${ny}px) rotate(${rot}deg) scale(${sx}, ${sy})`;
-    }
 
     // ================= Schleife (läuft immer, auch vor dem Kamerastart) =================
     let landmarker = null, lastTime = -1;
