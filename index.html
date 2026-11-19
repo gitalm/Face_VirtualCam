@@ -161,11 +161,12 @@
     }
 
     // ================= Figur laden =================
-    let el = {}, cfg = null;
+    let el = {}, cfg = null, tongue = null;
     const dummy = document.createElementNS("http://www.w3.org/2000/svg", "g");
 
     async function loadFigure(file) {
       const res = await fetch("./assets/" + encodeURIComponent(file));
+      if (!res.ok) throw new Error("Datei nicht gefunden (" + res.status + ")");
       $("avatar").innerHTML = await res.text();
       localStorage.setItem("avatarFig", file);
       $("figSelect").value = file;
@@ -184,11 +185,20 @@
       el.nose.style.transformBox = "fill-box";
       el.nose.style.transformOrigin = "center";
 
+      // Zunge: wird vom Skript erzeugt, liegt direkt hinter der Mundfüllung
+      tongue = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      tongue.setAttribute("fill", "#e8607a");
+      tongue.setAttribute("stroke", "#8f2a2a");
+      tongue.setAttribute("stroke-linejoin", "round");
+      tongue.setAttribute("stroke-linecap", "round");
+      tongue.setAttribute("d", "");
+      if (el.mouthFill !== dummy) el.mouthFill.after(tongue);
+
       // Werte: berechnet -> bekannt -> data-fig im <svg>-Tag
       let override = {};
       try { override = JSON.parse($("avatar").querySelector("svg")?.dataset.fig || "{}"); } catch {}
       cfg = { ...deriveConfig(el), ...(KNOWN[file] || {}), ...override };
-      requestAnimationFrame(() => drawMouth(0, 0.1, 0));
+      requestAnimationFrame(() => drawMouth(0, 0.1, 0, 0));
     }
 
     // ================= Hilfsfunktionen =================
@@ -199,8 +209,8 @@
     const setBrow = (lines, y1, y2) =>
       lines.forEach((l) => { l.setAttribute("y1", y1); l.setAttribute("y2", y2); });
 
-    // ================= Mund =================
-    function drawMouth(open, smile, pucker) {
+    // ================= Mund und Zunge =================
+    function drawMouth(open, smile, pucker, tg = 0) {
       const { cx, cy, halfW: w, openMax } = cfg.mouth;
       const halfW = w - pucker * w * 0.45;
       const yc = cy - smile * w * 0.27;
@@ -219,13 +229,39 @@
         el.mouthLine.setAttribute("d",
           `M${xl} ${yc} Q${cx} ${cy + w * 0.13 + smile * w * 0.33} ${xr} ${yc}`);
       }
+
+      // Zunge
+      if (tongue) {
+        if (tg > 0.08 && openH > 2) {
+          const len = tg * w * 1.1 + openH * 0.3;
+          const tw = w * 0.36;
+          const y0 = yc;
+          tongue.setAttribute("stroke-width", Math.max(2, w * 0.08));
+          tongue.setAttribute("d",
+            `M${cx - tw} ${y0} L${cx - tw} ${y0 + len * 0.6} ` +
+            `Q${cx - tw} ${y0 + len} ${cx} ${y0 + len} ` +
+            `Q${cx + tw} ${y0 + len} ${cx + tw} ${y0 + len * 0.6} L${cx + tw} ${y0}Z ` +
+            `M${cx} ${y0 + len * 0.15} L${cx} ${y0 + len * 0.6}`);
+        } else {
+          tongue.setAttribute("d", "");
+        }
+      }
+    }
+
+    // ================= Kopf =================
+    // Drehung wirkt zusätzlich als Neigung, dazu leises Eigenschwanken
+    function moveHead(roll, yaw) {
+      const t = performance.now();
+      const swayRoll = Math.sin(t / 2300) * 1.8 + Math.sin(t / 1370) * 1.0;   // Grad
+      const swayX = Math.sin(t / 3100) * 4;                                  // Pixel
+      const lean = yaw * 0.35;
+      el.head.style.transform =
+        `translateX(${yaw * 1.2 + swayX}px) rotate(${roll + lean + swayRoll}deg)`;
     }
 
     // ================= Körper und Schultern =================
-    // Atmet, folgt dem Kopf träge, zuckt bei hochgezogenen Brauen mit den Schultern.
-    // Figuren ohne body/shoulderL/shoulderR werden übersprungen.
     function moveBody(t, roll, yaw, tilt) {
-      const breath = Math.sin(t / 1100);                       // -1..1
+      const breath = Math.sin(t / 1100);
       const bx = smooth("bodyX", yaw * 0.5, 0.06);
       const br = smooth("bodyRoll", roll * 0.3, 0.06);
       const by = smooth("bodyY", tilt * 0.4, 0.08);
@@ -236,8 +272,7 @@
           `translate(${bx}px, ${breath * 3 + by}px) rotate(${br}deg)`;
       }
 
-      // Schultern: zusätzlich zum Körper, leicht gegenläufig beim Atmen
-      const turnL = Math.max(0, yaw) * 0.25;                   // Kopf dreht -> eine Schulter höher
+      const turnL = Math.max(0, yaw) * 0.25;
       const turnR = Math.max(0, -yaw) * 0.25;
       if (el.shoulderL !== dummy) {
         el.shoulderL.style.transform =
@@ -281,12 +316,13 @@
         outer - inUp * u / 3 - oR * u * 0.9 + dR * u / 3,
         inner - inUp * u + dR * u * 0.7);
 
-      // Mund
-      const open = smooth("open", g("jawOpen"));
+      // Mund und Zunge
+      const tg = smooth("tongue", Math.min(1, g("tongueOut") * 2.5), 0.4);
+      const open = smooth("open", Math.max(g("jawOpen"), tg * 0.5));
       const smile = smooth("smile",
         ((g("mouthSmileLeft") + g("mouthSmileRight")) -
          (g("mouthFrownLeft") + g("mouthFrownRight"))) / 2 * 1.4);
-      drawMouth(open, Math.max(-1, Math.min(1, smile)), smooth("pucker", g("mouthPucker")));
+      drawMouth(open, Math.max(-1, Math.min(1, smile)), smooth("pucker", g("mouthPucker")), tg);
 
       // Kopf
       let yaw = 0, roll = 0, tilt = 0;
@@ -295,11 +331,10 @@
         roll = smooth("roll", Math.atan2(m[1], m[0]) * 180 / Math.PI);
         yaw  = smooth("yaw",  Math.asin(Math.max(-1, Math.min(1, -m[8]))) * 180 / Math.PI);
         tilt = smooth("tilt", Math.asin(Math.max(-1, Math.min(1,  m[9]))) * 180 / Math.PI);
-        el.head.style.transform = `translateX(${yaw * 1.2}px) rotate(${roll}deg)`;
       }
+      moveHead(roll, yaw);
       moveBody(performance.now(), roll, yaw, tilt);
 
-      // Nase
       // Nase: mehrere Einflüsse, stark geglättet, damit es organisch wirkt
       const sneer  = smooth("sneer", (g("noseSneerLeft") + g("noseSneerRight")) / 2, 0.3);
       const sneerD = smooth("sneerD", g("noseSneerLeft") - g("noseSneerRight"), 0.3);
@@ -319,25 +354,30 @@
         `translate(${nx}px, ${ny}px) rotate(${rot}deg) scale(${sx}, ${sy})`;
     }
 
-
     // ================= Schleife (läuft immer, auch vor dem Kamerastart) =================
     let landmarker = null, lastTime = -1;
     function loop() {
       let tracked = false;
-      if (landmarker && video.readyState >= 2 && video.currentTime !== lastTime) {
-        lastTime = video.currentTime;
-        const r = landmarker.detectForVideo(video, performance.now());
-        if (r.faceBlendshapes?.length > 0) {
-          apply(r.faceBlendshapes[0].categories, r.facialTransformationMatrixes?.[0]);
-          tracked = true;
+      try {
+        if (landmarker && video.readyState >= 2 && video.currentTime !== lastTime) {
+          lastTime = video.currentTime;
+          const r = landmarker.detectForVideo(video, performance.now());
+          if (r.faceBlendshapes?.length > 0) {
+            apply(r.faceBlendshapes[0].categories, r.facialTransformationMatrixes?.[0]);
+            tracked = true;
+          }
         }
+        // Ohne neue Gesichtsdaten: Kopf und Körper bewegen sich trotzdem leicht
+        if (!tracked && cfg) {
+          moveHead(state.roll ?? 0, state.yaw ?? 0);
+          moveBody(performance.now(), state.roll ?? 0, state.yaw ?? 0, state.tilt ?? 0);
+        }
+      } catch (err) {
+        console.error(err);
       }
-      // Ohne neue Gesichtsdaten: Körper atmet trotzdem weiter
-      if (!tracked && cfg) moveBody(performance.now(), state.roll ?? 0, state.yaw ?? 0, state.tilt ?? 0);
       requestAnimationFrame(loop);
     }
 
-    // ================= Start =================
     // ================= Start =================
     const files = await listFigures();
     $("figSelect").innerHTML = files
