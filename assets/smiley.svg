@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720">
+  <defs>
+    <clipPath id="clipEyeL"><ellipse cx="270" cy="290" rx="48" ry="56"/></clipPath>
+    <clipPath id="clipEyeR"><ellipse cx="450" cy="290" rx="48" ry="56"/></clipPath>
+  </defs>
+
+  <g id="head" style="transform-origin: 360px 360px">
+    <!-- Kopf -->
+    <circle cx="360" cy="360" r="280" fill="#ffd966" stroke="#333" stroke-width="10"/>
+
+    <!-- Wangenröte -->
+    <ellipse cx="190" cy="430" rx="45" ry="26" fill="#ff9a7a" opacity=".45"/>
+    <ellipse cx="530" cy="430" rx="45" ry="26" fill="#ff9a7a" opacity=".45"/>
+
+    <!-- Augen links -->
+    <ellipse cx="270" cy="290" rx="48" ry="56" fill="#fff" stroke="#333" stroke-width="6"/>
+    <g clip-path="url(#clipEyeL)">
+      <g id="irisL">
+        <circle id="pupilL" cx="270" cy="290" r="22" fill="#222"/>
+        <circle cx="278" cy="281" r="7" fill="#fff"/>
+      </g>
+    </g>
+    <rect id="lidL" x="218" y="232" width="104" height="0" fill="#ffd966"/>
+
+    <!-- Augen rechts -->
+    <ellipse cx="450" cy="290" rx="48" ry="56" fill="#fff" stroke="#333" stroke-width="6"/>
+    <g clip-path="url(#clipEyeR)">
+      <g id="irisR">
+        <circle id="pupilR" cx="450" cy="290" r="22" fill="#222"/>
+        <circle cx="458" cy="281" r="7" fill="#fff"/>
+      </g>
+    </g>
+    <rect id="lidR" x="398" y="232" width="104" height="0" fill="#ffd966"/>
+
+    <!-- Augenbrauen (je zwei Linien, wie beim Philosoph
