@@ -32,4 +32,17 @@
     </g>
     <rect id="lidR" x="398" y="232" width="104" height="0" fill="#ffd966"/>
 
-    <!-- Augenbrauen (je zwei Linien, wie beim Philosoph
+    <!-- Augenbrauen (je zwei Linien, wie beim Philosophen) -->
+    <line id="browL"  x1="215" y1="198" x2="320" y2="190" stroke="#333" stroke-width="16" stroke-linecap="round"/>
+    <line id="browL2" x1="215" y1="198" x2="320" y2="190" stroke="#333" stroke-width="16" stroke-linecap="round"/>
+    <line id="browR"  x1="400" y1="190" x2="505" y2="198" stroke="#333" stroke-width="16" stroke-linecap="round"/>
+    <line id="browR2" x1="400" y1="190" x2="505" y2="198" stroke="#333" stroke-width="16" stroke-linecap="round"/>
+
+    <!-- Nase -->
+    <path id="nose" d="M360 330 Q342 380 366 386" fill="none" stroke="#333" stroke-width="8" stroke-linecap="round"/>
+
+    <!-- Mund (per Skript gezeichnet) -->
+    <path id="mouthFill" d="" fill="#a33"/>
+    <path id="mouthLine" d="M300 485 Q360 505 420 485" fill="none" stroke="#333" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
