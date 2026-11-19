@@ -249,14 +249,40 @@
     }
 
     // ================= Kopf =================
-    // Drehung wirkt zusätzlich als Neigung, dazu leises Eigenschwanken
-    function moveHead(roll, yaw) {
+    // roll: Neigung links/rechts, yaw: Drehung, tilt: Nicken, dist: Abstand zur Kamera
+    // Näher an der Kamera -> Kopf wird größer und neigt sich nach vorn.
+    // Drehung wirkt wie eine leichte 3D-Rotation (Scherung + Stauchung).
+    let dist0 = null;   // Referenzabstand, wird beim ersten Gesicht gesetzt
+
+    function moveHead(roll, yaw, tilt = 0, dist = null) {
       const t = performance.now();
-      const swayRoll = Math.sin(t / 2300) * 1.8 + Math.sin(t / 1370) * 1.0;   // Grad
-      const swayX = Math.sin(t / 3100) * 4;                                  // Pixel
-      const lean = yaw * 0.35;
+      const swayRoll = Math.sin(t / 2300) * 1.8 + Math.sin(t / 1370) * 1.0;
+      const swayX = Math.sin(t / 3100) * 4;
+
+      // Nähe: 0 = Normalabstand, positiv = näher, negativ = weiter weg
+      let near = 0;
+      if (dist !== null) {
+        if (dist0 === null) dist0 = dist;
+        near = smooth("near", Math.max(-1, Math.min(1, (dist0 - dist) / 25)), 0.15);
+      } else {
+        near = state.near ?? 0;
+      }
+
+      const lean   = yaw * 0.35;
+      const scale  = 1 + near * 0.12;                        // größer, wenn näher
+      const forward = Math.max(0, near) * 22 + tilt * 0.8;   // Vorneigen: Kopf rutscht nach unten
+      const squashY = 1 - Math.max(0, near) * 0.04 - Math.abs(tilt) * 0.004;
+
+      // Pseudo-3D: Drehung nach hinten links/rechts
+      const turn  = Math.max(-1, Math.min(1, yaw / 30));     // -1..1
+      const skewY = -turn * 5;                               // Grad, Kopf kippt "in die Tiefe"
+      const squashX = 1 - Math.abs(turn) * 0.06;             // Gesicht wird schmaler
+
       el.head.style.transform =
-        `translateX(${yaw * 1.2 + swayX}px) rotate(${roll + lean + swayRoll}deg)`;
+        `translate(${yaw * 1.2 + swayX}px, ${forward}px) ` +
+        `rotate(${roll + lean + swayRoll}deg) ` +
+        `skewY(${skewY}deg) ` +
+        `scale(${scale * squashX}, ${scale * squashY})`;
     }
 
     // ================= Körper und Schultern =================
@@ -325,14 +351,15 @@
       drawMouth(open, Math.max(-1, Math.min(1, smile)), smooth("pucker", g("mouthPucker")), tg);
 
       // Kopf
-      let yaw = 0, roll = 0, tilt = 0;
+      let yaw = 0, roll = 0, tilt = 0, dist = null;
       if (matrix) {
         const m = matrix.data;
         roll = smooth("roll", Math.atan2(m[1], m[0]) * 180 / Math.PI);
         yaw  = smooth("yaw",  Math.asin(Math.max(-1, Math.min(1, -m[8]))) * 180 / Math.PI);
         tilt = smooth("tilt", Math.asin(Math.max(-1, Math.min(1,  m[9]))) * 180 / Math.PI);
+        dist = Math.abs(m[14]);                              // Abstand zur Kamera (cm)
       }
-      moveHead(roll, yaw);
+      moveHead(roll, yaw, tilt, dist);
       moveBody(performance.now(), roll, yaw, tilt);
 
       // Nase: mehrere Einflüsse, stark geglättet, damit es organisch wirkt
@@ -369,7 +396,7 @@
         }
         // Ohne neue Gesichtsdaten: Kopf und Körper bewegen sich trotzdem leicht
         if (!tracked && cfg) {
-          moveHead(state.roll ?? 0, state.yaw ?? 0);
+          moveHead(state.roll ?? 0, state.yaw ?? 0, state.tilt ?? 0, null);
           moveBody(performance.now(), state.roll ?? 0, state.yaw ?? 0, state.tilt ?? 0);
         }
       } catch (err) {
