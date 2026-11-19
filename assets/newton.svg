@@ -1,0 +1,655 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720">
+
+<defs>
+
+  <!-- Haut -->
+  <linearGradient id="skin" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#f9d0ad"/>
+    <stop offset=".5" stop-color="#edb58e"/>
+    <stop offset="1" stop-color="#ce8968"/>
+  </linearGradient>
+
+  <radialGradient id="skinLight">
+    <stop offset="0" stop-color="#ffe0c3"/>
+    <stop offset="1" stop-color="#e8a780"/>
+  </radialGradient>
+
+  <!-- Perücke -->
+  <linearGradient id="wig" x1="0" y1="0" x2=".8" y2="1">
+    <stop offset="0" stop-color="#fffef9"/>
+    <stop offset=".45" stop-color="#e9e6dc"/>
+    <stop offset="1" stop-color="#aaa99f"/>
+  </linearGradient>
+
+  <linearGradient id="wigShadow" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#c1bfb6"/>
+    <stop offset=".5" stop-color="#f9f7ef"/>
+    <stop offset="1" stop-color="#c3c0b7"/>
+  </linearGradient>
+
+  <!-- Kleidung -->
+  <linearGradient id="coat" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#34404c"/>
+    <stop offset=".45" stop-color="#202c3a"/>
+    <stop offset="1" stop-color="#111b28"/>
+  </linearGradient>
+
+  <linearGradient id="coatLight" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#536071"/>
+    <stop offset="1" stop-color="#253344"/>
+  </linearGradient>
+
+  <linearGradient id="shirt" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#ffffff"/>
+    <stop offset="1" stop-color="#d6d9d5"/>
+  </linearGradient>
+
+  <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#fff0a8"/>
+    <stop offset=".5" stop-color="#c99b3e"/>
+    <stop offset="1" stop-color="#806025"/>
+  </linearGradient>
+
+  <!-- Augen -->
+  <radialGradient id="irisColor" cx=".4" cy=".35" r=".7">
+    <stop offset="0" stop-color="#a8d9e8"/>
+    <stop offset=".5" stop-color="#548fae"/>
+    <stop offset="1" stop-color="#25465f"/>
+  </radialGradient>
+
+  <!-- Augenclips -->
+  <clipPath id="clipEyeL">
+    <ellipse cx="292" cy="240" rx="28" ry="21"/>
+  </clipPath>
+
+  <clipPath id="clipEyeR">
+    <ellipse cx="405" cy="244" rx="28" ry="21"/>
+  </clipPath>
+
+  <!-- Einzelne Perückenlocke -->
+  <g id="curl">
+    <path d="M0 0
+             C-13 -13 -12 -28 1 -31
+             C17 -34 23 -18 12 -9
+             C5 -3 -2 -8 1 -16
+             C4 -22 12 -18 9 -13"
+          fill="none"
+          stroke="#aaa99f"
+          stroke-width="7"
+          stroke-linecap="round"/>
+
+    <path d="M0 0
+             C-13 -13 -12 -28 1 -31
+             C17 -34 23 -18 12 -9"
+          fill="none"
+          stroke="#fffef8"
+          stroke-width="3.5"
+          stroke-linecap="round"/>
+  </g>
+
+</defs>
+
+
+<!-- ================================================= -->
+<!-- KÖRPER -->
+<!-- ================================================= -->
+
+<g id="body"
+   style="transform-origin:350px 720px"
+   stroke="#172330"
+   stroke-width="4"
+   stroke-linejoin="round"
+   stroke-linecap="round">
+
+  <!-- Hals -->
+  <path d="
+    M292 350
+    L407 350
+    C398 410 414 455 445 490
+    L250 490
+    C285 450 300 405 292 350Z"
+    fill="url(#skin)"/>
+
+  <!-- Hals Schatten -->
+  <path d="M305 390 Q350 430 395 390
+           Q390 445 350 455
+           Q310 440 305 390Z"
+        fill="#bd8061" opacity=".35"/>
+
+  <!-- Linke Schulter -->
+  <g id="shoulderL"
+     style="transform-origin:200px 500px">
+
+    <path d="
+      M65 740
+      C65 615 85 525 155 478
+      C205 448 250 440 310 435
+      L375 455
+      L390 740Z"
+      fill="url(#coat)"/>
+
+    <!-- Revers -->
+    <path d="
+      M280 445
+      L335 470
+      L300 560
+      L245 485Z"
+      fill="url(#coatLight)"
+      stroke="#111b28"/>
+
+    <path d="M275 455 L310 480 L282 530"
+          fill="none" stroke="#788292"
+          stroke-width="2"/>
+
+    <!-- Stofffalten -->
+    <path d="M100 620 Q145 550 190 525
+             M125 700 Q165 620 210 590
+             M230 690 Q255 610 270 560"
+          fill="none" stroke="#697687"
+          stroke-width="3" opacity=".55"/>
+
+    <!-- Schulterlicht -->
+    <path d="M115 535 Q160 485 225 480"
+          fill="none" stroke="#758191"
+          stroke-width="5" opacity=".4"/>
+
+  </g>
+
+
+  <!-- Hemd -->
+  <path d="
+    M305 425
+    Q350 450 395 425
+    L455 740
+    L250 740Z"
+    fill="url(#shirt)"/>
+
+  <!-- Halskrause / Cravat -->
+  <path d="
+    M292 405
+    Q315 420 350 415
+    Q385 420 408 405
+    L390 475
+    Q370 510 350 535
+    Q330 510 310 475Z"
+    fill="#f7f5ee"
+    stroke="#9c9c93"
+    stroke-width="3"/>
+
+  <!-- Falten der Halskrause -->
+  <g fill="none" stroke="#c5c4ba" stroke-width="2.5">
+    <path d="M310 420 Q320 460 350 510"/>
+    <path d="M325 425 Q330 470 350 520"/>
+    <path d="M390 420 Q380 460 350 510"/>
+    <path d="M375 425 Q370 470 350 520"/>
+  </g>
+
+  <!-- Rechte Schulter -->
+  <g id="shoulderR"
+     style="transform-origin:560px 480px">
+
+    <path d="
+      M395 435
+      L470 440
+      C555 450 640 520 670 740
+      L350 740
+      L370 455Z"
+      fill="url(#coat)"/>
+
+    <!-- Revers -->
+    <path d="
+      M390 445
+      L445 455
+      L490 535
+      L440 565
+      L405 490Z"
+      fill="url(#coatLight)"
+      stroke="#111b28"/>
+
+    <path d="M415 465 L455 520 L442 548"
+          fill="none" stroke="#8290a0"
+          stroke-width="2"/>
+
+    <!-- Stofffalten -->
+    <g fill="none" stroke="#647284" stroke-width="3">
+      <path d="M480 500 Q520 570 535 660"/>
+      <path d="M540 530 Q580 625 590 720"/>
+      <path d="M620 610 Q635 665 640 720"/>
+    </g>
+
+  </g>
+
+  <!-- Goldene Knöpfe -->
+  <g fill="url(#gold)" stroke="#76551e" stroke-width="2">
+
+    <circle cx="290" cy="575" r="7"/>
+    <circle cx="300" cy="625" r="7"/>
+    <circle cx="310" cy="675" r="7"/>
+
+    <circle cx="435" cy="585" r="7"/>
+    <circle cx="445" cy="635" r="7"/>
+    <circle cx="455" cy="685" r="7"/>
+
+  </g>
+
+  <!-- Knopfglanz -->
+  <g fill="#fff4c6" opacity=".8">
+    <circle cx="288" cy="573" r="2"/>
+    <circle cx="298" cy="623" r="2"/>
+    <circle cx="308" cy="673" r="2"/>
+    <circle cx="433" cy="583" r="2"/>
+    <circle cx="443" cy="633" r="2"/>
+    <circle cx="453" cy="683" r="2"/>
+  </g>
+
+</g>
+
+
+<!-- ================================================= -->
+<!-- KOPF -->
+<!-- ================================================= -->
+
+<g id="head"
+   style="transform-origin:350px 400px">
+
+
+  <!-- Hintere Perücke -->
+  <path d="
+    M225 235
+    C195 170 210 105 275 75
+    C320 45 405 55 460 95
+    C520 135 535 210 510 300
+    L500 430
+    C490 485 465 530 430 550
+    L420 420
+    L270 420
+    L260 550
+    C220 515 195 450 195 365Z"
+    fill="url(#wig)"
+    stroke="#42464b"
+    stroke-width="4"/>
+
+  <!-- Seitliche Haarmassen -->
+  <path d="
+    M235 160
+    C205 180 200 250 218 305
+    C190 340 205 410 240 440
+    C220 485 250 535 280 545
+    L300 430
+    L280 260Z"
+    fill="url(#wigShadow)"
+    stroke="#42464b"
+    stroke-width="3"/>
+
+  <path d="
+    M465 145
+    C510 180 510 255 490 305
+    C520 350 505 415 470 445
+    C490 490 455 535 425 545
+    L405 430
+    L430 260Z"
+    fill="url(#wigShadow)"
+    stroke="#42464b"
+    stroke-width="3"/>
+
+  <!-- Perückenlocken links -->
+  <g>
+    <use href="#curl" transform="translate(225 185) rotate(-30) scale(1.2)"/>
+    <use href="#curl" transform="translate(215 235) rotate(20) scale(1.3)"/>
+    <use href="#curl" transform="translate(220 285) rotate(-20) scale(1.2)"/>
+    <use href="#curl" transform="translate(215 340) rotate(30) scale(1.3)"/>
+    <use href="#curl" transform="translate(235 390) rotate(-20) scale(1.2)"/>
+    <use href="#curl" transform="translate(245 445) rotate(25) scale(1.2)"/>
+    <use href="#curl" transform="translate(265 485) rotate(-20)"/>
+    <use href="#curl" transform="translate(250 515) rotate(30)"/>
+    <use href="#curl" transform="translate(280 535) rotate(-15)"/>
+  </g>
+
+  <!-- Perückenlocken rechts -->
+  <g>
+    <use href="#curl" transform="translate(490 185) rotate(30) scale(1.2)"/>
+    <use href="#curl" transform="translate(500 235) rotate(-20) scale(1.3)"/>
+    <use href="#curl" transform="translate(495 285) rotate(20) scale(1.2)"/>
+    <use href="#curl" transform="translate(500 340) rotate(-30) scale(1.3)"/>
+    <use href="#curl" transform="translate(480 390) rotate(20) scale(1.2)"/>
+    <use href="#curl" transform="translate(475 445) rotate(-25) scale(1.2)"/>
+    <use href="#curl" transform="translate(455 485) rotate(20)"/>
+    <use href="#curl" transform="translate(470 515) rotate(-30)"/>
+    <use href="#curl" transform="translate(440 535) rotate(15)"/>
+  </g>
+
+  <!-- Gesicht: geschlossene Grundfläche -->
+  <path d="
+    M225 170
+    C235 105 290 85 350 88
+    C425 85 475 125 480 195
+    C488 265 472 345 445 405
+    C420 455 385 485 350 490
+    C310 480 275 450 250 405
+    C220 345 210 245 225 170Z"
+    fill="url(#skin)"/>
+
+  <!-- Gesichtskontur -->
+  <path d="
+    M242 175
+    C250 120 300 105 350 105
+    C410 105 455 135 462 195
+    C472 275 452 355 425 395
+    C405 430 375 455 350 462
+    C315 455 285 425 265 395
+    C235 345 228 250 242 175Z"
+    fill="url(#skinLight)"
+    stroke="#55433b"
+    stroke-width="4"/>
+
+  <!-- Gesichtsschatten -->
+  <path d="M242 220 Q230 320 275 405
+           Q250 335 255 230Z"
+        fill="#bd8061" opacity=".25"/>
+
+  <path d="M460 220 Q475 320 425 405
+           Q450 335 447 230Z"
+        fill="#bd8061" opacity=".25"/>
+
+  <!-- Stirnlicht -->
+  <path d="M290 145 Q350 120 415 145"
+        fill="none" stroke="#fff0dc"
+        stroke-width="5" opacity=".7"
+        stroke-linecap="round"/>
+
+  <!-- Wangen -->
+  <ellipse cx="276" cy="305" rx="25" ry="15"
+           fill="#d77d72" opacity=".23"/>
+
+  <ellipse cx="426" cy="309" rx="25" ry="15"
+           fill="#d77d72" opacity=".23"/>
+           
+           <!-- Rosige Wangen -->
+<ellipse cx="276" cy="305" rx="25" ry="15"
+         fill="#ef827b" opacity=".32"/>
+
+<ellipse cx="426" cy="309" rx="25" ry="15"
+         fill="#ef827b" opacity=".32"/>
+
+<!-- Freundliche Lachfältchen -->
+<g fill="none" stroke="#bd8061"
+   stroke-width="2.5" stroke-linecap="round"
+   opacity=".65">
+
+  <path d="M255 310 Q262 318 270 318"/>
+  <path d="M432 318 Q440 318 447 310"/>
+
+  <path d="M278 335 Q290 342 302 337"/>
+  <path d="M400 337 Q414 342 426 335"/>
+
+</g>
+
+  <!-- Altersfalten -->
+  <g fill="none" stroke="#bd8061"
+     stroke-width="2.5" stroke-linecap="round"
+     opacity=".65">
+
+    <path d="M275 165 Q300 157 320 163"/>
+    <path d="M380 163 Q405 157 430 165"/>
+
+    <path d="M270 175 Q300 170 318 175"/>
+    <path d="M382 175 Q405 170 430 175"/>
+
+    <path d="M260 285 Q270 280 280 284"/>
+    <path d="M418 284 Q430 280 440 286"/>
+
+    <path d="M275 335 Q290 342 300 335"/>
+    <path d="M405 335 Q420 342 435 335"/>
+
+    <path d="M330 375 Q350 380 370 375"/>
+
+  </g>
+
+
+  <!-- ================================================= -->
+  <!-- AUGEN -->
+  <!-- ================================================= -->
+
+  <!-- Linkes Auge -->
+  <path d="M264 240 Q292 215 320 240
+           Q292 261 264 240Z"
+        fill="#fffdf8"
+        stroke="#55433b"
+        stroke-width="3"/>
+
+  <g clip-path="url(#clipEyeL)">
+
+    <g id="irisL">
+
+      <circle cx="292" cy="240" r="16"
+              fill="url(#irisColor)"
+              stroke="#24465a"
+              stroke-width="2"/>
+
+      <circle cx="292" cy="240" r="11"
+              fill="none"
+              stroke="#b8e1eb"
+              stroke-width="1.5"/>
+
+      <circle id="pupilL"
+              cx="292" cy="240" r="7.5"
+              fill="#14202a"/>
+
+      <circle cx="297" cy="234" r="4"
+              fill="#fff"/>
+
+      <circle cx="287" cy="246" r="2"
+              fill="#fff" opacity=".8"/>
+              <circle cx="299" cy="232" r="2"
+        fill="#fff" opacity=".9"/>
+
+<circle cx="412" cy="236" r="2"
+        fill="#fff" opacity=".9"/>
+
+    </g>
+
+  </g>
+
+  <path d="M264 240 Q292 215 320 240"
+        fill="none" stroke="#55433b"
+        stroke-width="3"/>
+
+  <rect id="lidL"
+        x="262" y="217"
+        width="60" height="0"
+        fill="#edb58e"/>
+
+
+  <!-- Rechtes Auge -->
+  <path d="M377 244 Q405 218 433 244
+           Q405 265 377 244Z"
+        fill="#fffdf8"
+        stroke="#55433b"
+        stroke-width="3"/>
+
+  <g clip-path="url(#clipEyeR)">
+
+    <g id="irisR">
+
+      <circle cx="405" cy="244" r="16"
+              fill="url(#irisColor)"
+              stroke="#24465a"
+              stroke-width="2"/>
+
+      <circle cx="405" cy="244" r="11"
+              fill="none"
+              stroke="#b8e1eb"
+              stroke-width="1.5"/>
+
+      <circle id="pupilR"
+              cx="405" cy="244" r="7.5"
+              fill="#14202a"/>
+
+      <circle cx="410" cy="238" r="4"
+              fill="#fff"/>
+
+      <circle cx="400" cy="250" r="2"
+              fill="#fff" opacity=".8"/>
+
+    </g>
+
+  </g>
+
+  <path d="M377 244 Q405 218 433 244"
+        fill="none" stroke="#55433b"
+        stroke-width="3"/>
+
+  <rect id="lidR"
+        x="375" y="221"
+        width="60" height="0"
+        fill="#edb58e"/>
+
+
+  <!-- Augenfalten -->
+  <g fill="none" stroke="#b77c60"
+     stroke-width="2.5" stroke-linecap="round">
+
+    <path d="M265 265 Q292 272 320 263"/>
+    <path d="M378 267 Q405 274 432 267"/>
+
+  </g>
+
+
+  <!-- ================================================= -->
+  <!-- NASE -->
+  <!-- ================================================= -->
+
+  <g id="nose">
+
+    <!-- Nasenrücken -->
+    <path d="
+      M344 245
+      C339 265 323 290 321 301
+      Q320 313 342 316
+      Q360 320 380 306
+      Q388 296 374 279
+      L357 245Z"
+      fill="#d99976"
+      stroke="#765344"
+      stroke-width="3.5"
+      stroke-linejoin="round"/>
+
+    <!-- Licht -->
+    <path d="M348 253 Q340 280 331 299"
+          fill="none" stroke="#ffe1c3"
+          stroke-width="5"
+          stroke-linecap="round"/>
+
+    <!-- Nasenflügel -->
+    <path d="M322 300 Q332 313 345 308"
+          fill="none" stroke="#a76b53"
+          stroke-width="3"/>
+
+    <path d="M360 309 Q374 314 382 300"
+          fill="none" stroke="#a76b53"
+          stroke-width="3"/>
+
+    <!-- Nasenlöcher -->
+    <ellipse cx="334" cy="307" rx="5" ry="2.5"
+             fill="#714a3d"/>
+
+    <ellipse cx="371" cy="307" rx="5" ry="2.5"
+             fill="#714a3d"/>
+
+  </g>
+
+
+  <!-- ================================================= -->
+  <!-- AUGENBRAUEN -->
+  <!-- ================================================= -->
+
+<line id="browL"
+      x1="255" y1="194" x2="320" y2="188"
+      stroke="#625044" stroke-width="24"
+      stroke-linecap="round"/>
+
+<line id="browL2"
+      x1="255" y1="194" x2="320" y2="188"
+      stroke="#c6a88e" stroke-width="17"
+      stroke-linecap="round"/>
+
+<line id="browR"
+      x1="380" y1="188" x2="445" y2="194"
+      stroke="#625044" stroke-width="24"
+      stroke-linecap="round"/>
+
+<line id="browR2"
+      x1="380" y1="188" x2="445" y2="194"
+      stroke="#c6a88e" stroke-width="17"
+      stroke-linecap="round"/>
+
+
+  <!-- ================================================= -->
+  <!-- MUND -->
+  <!-- ================================================= -->
+
+<path id="mouthFill" d=""
+      fill="#873f3c"/>
+
+<path id="mouthLine"
+      d="M315 355 Q348 391 381 355"
+      fill="none"
+      stroke="#995e50"
+      stroke-width="4.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"/>
+
+  <!-- Lippen -->
+  <path d="M325 357 Q348 352 371 357"
+        fill="none"
+        stroke="#d28d79"
+        stroke-width="2.5"
+        stroke-linecap="round"/>
+
+  <!-- Kinn -->
+  <path d="M320 405 Q350 418 380 405"
+        fill="none" stroke="#bd8061"
+        stroke-width="2.5" opacity=".5"/>
+
+
+  <!-- ================================================= -->
+  <!-- VORDERE PERÜCKE -->
+  <!-- ================================================= -->
+
+  <!-- Stirnansatz -->
+  <path d="
+    M235 185
+    C225 125 275 80 350 78
+    C430 75 475 120 465 185
+    C440 155 420 145 400 142
+    C375 135 350 140 330 143
+    C285 145 260 160 235 185Z"
+    fill="url(#wig)"
+    stroke="#55534e"
+    stroke-width="4"/>
+
+  <!-- Locken oben -->
+  <g>
+    <use href="#curl" transform="translate(265 125) rotate(-35) scale(1.1)"/>
+    <use href="#curl" transform="translate(295 105) rotate(-20) scale(1.1)"/>
+    <use href="#curl" transform="translate(325 95) rotate(10)"/>
+    <use href="#curl" transform="translate(355 90) rotate(25)"/>
+    <use href="#curl" transform="translate(385 98) rotate(35)"/>
+    <use href="#curl" transform="translate(415 112) rotate(40)"/>
+    <use href="#curl" transform="translate(445 140) rotate(55)"/>
+  </g>
+
+  <!-- Haarsträhnen -->
+  <g fill="none" stroke="#aaa99f"
+     stroke-width="2.5" stroke-linecap="round">
+
+    <path d="M250 155 Q270 115 300 105"/>
+    <path d="M285 135 Q310 105 340 100"/>
+    <path d="M335 125 Q365 100 395 115"/>
+    <path d="M380 135 Q415 115 440 150"/>
+
+  </g>
+
+</g>
+
+</svg>
